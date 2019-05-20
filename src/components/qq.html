@@ -1,0 +1,49 @@
+
+<!--<script src="../dist/vue-rx.js"></script>-->
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title></title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <style>
+           
+        </style>
+    </head>
+    <body>
+            <div id="app">
+        <div>{{ count }}</div>
+        <button v-stream:click="plus$">+</button>
+        <button v-stream:click="minus$">-</button>
+       
+        </div>
+
+        <script src="https://unpkg.com/rxjs/bundles/rxjs.umd.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script>
+const { merge } = rxjs
+const { map, startWith, scan } = rxjs.operators
+new Vue({
+  el: '#app',
+  // declare dom stream Subjects
+  domStreams: ['plus$', 'minus$'],
+  subscriptions () {
+    return {
+      count: merge(
+        this.plus$.pipe(map(() => 1)),
+        this.minus$.pipe(map(() => -1))
+      ).pipe(
+        startWith(0),
+        scan((total, change) => total + change)
+      )
+    }
+  }
+})
+</script>
+    </body>
+</html>
+
+
+
+
