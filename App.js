@@ -38,6 +38,7 @@ import MayTwo from './src/view/mayspring'
 import HomePage from './src/view/home'
 import Flat from './src/view/flat'
 import TestSelect from './src/view/testSelect'
+import Slider from './src/view/slider'
 
 Date.prototype.Format = function(fmt)   
 {    

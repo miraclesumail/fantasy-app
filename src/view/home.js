@@ -1,10 +1,13 @@
 import React, { Component, useRef, useState, useEffect, Fragment } from 'react'
-import { Text, View, StyleSheet, Dimensions, ScrollView, TouchableWithoutFeedback, Image, Animated, Easing } from 'react-native'
+import { Text, View, StyleSheet, Dimensions, ScrollView, TouchableWithoutFeedback, PanResponder, Image, Animated, Easing } from 'react-native'
 import Swiper from 'react-native-swiper';
 import RNPickerSelect from 'react-native-picker-select';
+import CustomProgress from '../components/custom_progress'
 import {connect} from 'react-redux';
 import Carousel from 'react-native-looped-carousel';
-const { width } = Dimensions.get('window');
+const { width,height } = Dimensions.get('window');
+
+const { Value, divide, concat, add } = Animated;
 
 const renderPagination = (index, total, context) => {
   return (
@@ -22,6 +25,48 @@ const images = [
       require('../imgs/h9.jpeg'),require('../imgs/h10.jpeg'),require('../imgs/h11.jpeg'),require('../imgs/h12.jpeg'),
       require('../imgs/h13.jpeg')
 ]
+
+function usePrevious(value) {
+  const ref = useRef();
+  useEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
+}
+
+function Test({number}) {
+    const [count, setCount] = useState(0);
+    const [count1, setCount1] = useState(0);
+    const prevNumber = usePrevious(number);
+    const prevCount = usePrevious(count);
+    
+    useEffect(() => {
+          console.log('effect');
+
+           console.log(prevCount, count);
+          if(prevNumber == number){
+              console.log('sameme');
+              return
+          }
+          console.log('sameme111111');
+          setCount(number*2);
+          return () => {
+              console.log('ffff')
+          }
+    }, [count])
+
+
+    return (
+        <Fragment>
+            <TouchableWithoutFeedback onPress={() => setCount(count+1)}>
+                <View><Text>{count} prev </Text></View>
+            </TouchableWithoutFeedback>
+             <TouchableWithoutFeedback onPress={() => setCount1(count1+1)}>
+                <View><Text>{count1} </Text></View>
+            </TouchableWithoutFeedback>
+        </Fragment>
+    )
+}
 
 class Star extends Component {
       state = {
@@ -170,42 +215,91 @@ function Rating({hot}) {
      )
 }
 
-const sports = [
+const judges = [
     {
-        label: 'Football',
-        value: 'football',
+        label: '按日均投注',
+        value: 'avg_amount',
     },
     {
-        label: 'Baseball',
-        value: 'baseball',
+        label: '按日均人数',
+        value: 'avg_person',
     },
     {
-        label: 'Hockey',
-        value: 'hockey',
+        label: '按日均奖金',
+        value: 'avg_bonus'
     },
+    {
+        label: '高级筛选',
+        value: 'multi_choice'
+    }
 ];
+
+const orders = [
+    {
+        label: '升序',
+        value: 'up'
+    },
+    {
+        label: '降序',
+        value: 'down'
+    }
+]
 
 class HomePage extends Component {
   constructor(props){
        super(props);
        this.state = {
-          shakingArr: Array.from({length:props.gamesList.hotRecommend.length}, (v,i) => ({index:i, shaking:false}))
+          number: 0,
+          shakingArr: Array.from({length:props.gamesList.hotRecommend.length}, (v,i) => ({index:i, shaking:false})),
+          judge: judges[0].value,
+          order: orders[0].value,
+          newProducts: props.gamesList.newProducts.slice().sort((prev, next) => prev[judges[0].value] - next[judges[0].value]),
+          minVal: 1,
+          showAdvance:false,
+          minAmount: 10,
+          maxAmount: 19,
+          showIndex: 0
        } 
+       this.myRef1 = React.createRef();
+       this.myRef2 = React.createRef();  
   }
   
 
-  ref = React.createRef();
+  componentDidMount() {
+      setInterval(() => {
+          this.setState({number: this.state.number + 1})
+      },2000)
+  }
 
   componentWillReceiveProps(nextProps){
       const {shakingArr} = this.state;
-                  console.log('shakingArr');
-      console.log(nextProps);
       if(shakingArr.length != nextProps.gamesList.hotRecommend.length){
             const length = nextProps.gamesList.hotRecommend.length;
             const shakingArr = Array.from({length}, (v,i) => ({index:i, shaking:false}))
-            console.log(shakingArr);
             this.setState({shakingArr})
       }
+  }
+
+  orderProducts = () => {
+      const {order, judge, minAmount} = this.state;
+      const products = this.props.gamesList.newProducts.slice();
+      if(judge != 'multi_choice') {
+           const newProducts = products.sort((prev, next) => order == 'up' ? prev[judge] - next[judge] : next[judge] - prev[judge])
+           this.setState({newProducts});
+      } else {
+           const scoreMin = this.myRef1.current.score;
+           const scoreMax = this.myRef2.current.score;
+           //const amountMin = this.myRef2.current;
+           console.log(minAmount);
+           const newProducts = products.filter(item => item.avg_score <= scoreMax && item.avg_score >= scoreMin);
+           this.setState({newProducts});
+      }    
+  }
+
+  getDays = (date) => {
+      let prev = new Date(date).getTime();
+      let now = new Date().getTime();
+      return Math.ceil((now - prev)/1000/24/3600);
   }
 
   setShaking = (index, flag) => {
@@ -224,13 +318,14 @@ class HomePage extends Component {
 
   render() {
       const placeholder = {
-            label: 'Select a sport...',
+            label: '选择参数',
             value: null,
             color: '#9EA0A4',
         };
-    const {gamesList, toggleLike, deleteItem, toTop} = this.props;
-    const {shakingArr} = this.state;
-    console.log(gamesList);
+    const {gamesList, toggleLike, deleteItem, toTop } = this.props;
+    const {shakingArr, newProducts, judge, minVal, showAdvance, showIndex} = this.state;
+
+    const containerHeight = Math.ceil(newProducts.length / 3)*.4*width;
     const gameRecommend = (
           <View style={{width, height:width*.4, flexDirection:'row'}}>
              {gamesList.hotRecommend.map((item,index) => (
@@ -270,22 +365,80 @@ class HomePage extends Component {
           </View>       
     )
 
-    const newProduct = (
-          <View style={{width:width*.5, height:200}}>
-                 <RNPickerSelect
-                    placeholder={placeholder}
-                    items={sports}
-                    onValueChange={(value) => {
-                        this.setState({
-                            favSport1: value,
-                        });
-                    }}
-                    style={pickerSelectStyles}
-                    value={this.state.favSport1}
-                    useNativeAndroidPickerStyle={false}
-                />
+    const singleChoose = (
+          <View style={{width:width, height:40, flexDirection: 'row', justifyContent:'space-between', alignItems:'center'}}>
+                    <View style={{width:.3*width, height:40}}>
+                        <RNPickerSelect
+                            placeholder={placeholder}
+                            items={judges}
+                            onValueChange={(value) => {
+                                this.setState({
+                                    judge: value,
+                                });
+                            }}
+                            style={pickerSelectStyles}
+                            value={this.state.judge}
+                            useNativeAndroidPickerStyle={false}
+                        />
+                    </View>
+                
+                    <View style={{width:.3*width, height:40}}>
+                        <RNPickerSelect
+                            placeholder={placeholder}
+                            items={orders}
+                            onValueChange={(value) => {
+                                this.setState({
+                                    order: value
+                                });
+                            }}
+                            style={pickerSelectStyles}
+                            value={this.state.order}
+                            useNativeAndroidPickerStyle={false}
+                        />
+                    </View>
 
-          </View>    
+                    <TouchableWithoutFeedback onPress={() => this.orderProducts()}>
+                        <View style={{width:.2*width, height:40, borderRadius:10, backgroundColor:'#FFA07A', justifyContent:'center', alignItems:'center'}}>
+                                <Text>确认</Text>
+                        </View>
+                    </TouchableWithoutFeedback>       
+              </View>
+    )
+
+    const newProduct = (
+          <Fragment>
+              {
+                  judge == 'multi_choice' ? 
+                   <View style={{width, height:30, paddingHorizontal:10, flexDirection:'row', alignItems:'center', justifyContent:'space-between'}}>
+                       <TouchableWithoutFeedback onPress={() => this.setState({showAdvance: !this.state.showAdvance})}>
+                            <View>
+                                <Text style={{fontSize:17, color:'#FFA500'}}>评分</Text>
+                            </View>  
+                       </TouchableWithoutFeedback>     
+                       <CustomProgress ref={this.myRef1}  width={.35*width} height={20} min={1} max={9} setMinVal={(minVal) => this.setState({minVal})}/>
+                       <CustomProgress ref={this.myRef2} width={.35*width} height={20} min={minVal} max={10}/>
+                       <TouchableWithoutFeedback onPress={() => this.orderProducts()}>
+                           <View>
+                               <Text style={{fontSize:17, color:'#FF4500'}}>--</Text>
+                           </View>
+                       </TouchableWithoutFeedback>    
+                   </View> : singleChoose
+              }
+              <View style={{width, height:containerHeight, flexDirection:'row', flexWrap:'wrap',justifyContent:'space-around', marginTop:20}}>
+                    {
+                        newProducts.map((v,i) => (
+                            <View style={{width:.25*width, height:.4*width, alignItem:'center', justifyContent:'space-between',backgroundColor:'#29C9C2'}}>
+                                <Image source={v.img} style={{width: width*.25, height:width*.25,borderRadius:width*.125}}/>
+                                <View style={{width:.25*width, height:.1*width, flexDirection:'row', justifyContent:'space-between', backgroundColor:'#FFA07A'}}>
+                                    <View style={{width:.125*width, height:.1*width, justifyContent:'center', alignItems:'center'}}><Text>{v.name}</Text></View> 
+                                    <View style={{width:.125*width, height:.1*width, justifyContent:'center', alignItems:'center'}}><Text>{this.getDays(v.release_date)}天</Text></View> 
+                                </View>
+                            </View>
+                        ))
+                    }     
+              </View>    
+          </Fragment>
+          
     )
 
     return (
@@ -332,27 +485,192 @@ class HomePage extends Component {
             </View>
 
             <View style={{width, height:40, flexDirection:'row'}}>
-               <TouchableWithoutFeedback><View style={{flex:1, backgroundColor:'#8F6FB9', justifyContent:'center', alignItems:'center', borderRightWidth:1, borderRightColor:'#6FAAB9'}}><Text>热门推荐</Text></View></TouchableWithoutFeedback>
-               <TouchableWithoutFeedback><View style={{flex:1, backgroundColor:'#8F6FB9', justifyContent:'center', alignItems:'center', borderRightWidth:1, borderRightColor:'#6FAAB9'}}><Text>新款上市</Text></View></TouchableWithoutFeedback>
-               <TouchableWithoutFeedback><View style={{flex:1, backgroundColor:'#8F6FB9', justifyContent:'center', alignItems:'center', borderRightWidth:1, borderRightColor:'#6FAAB9'}}><Text>我的收藏</Text></View></TouchableWithoutFeedback>
+               <TouchableWithoutFeedback onPress={() => this.setState({showIndex:0})}>
+                   <View style={{flex:1, backgroundColor: showIndex == 0 ? '#37C0DB':'#8F6FB9', justifyContent:'center', alignItems:'center', borderRightWidth:1, borderRightColor:'#6FAAB9'}}><Text>热门推荐</Text></View></TouchableWithoutFeedback>
+               <TouchableWithoutFeedback onPress={() => this.setState({showIndex:1})}>
+                   <View style={{flex:1, backgroundColor: showIndex == 1 ? '#37C0DB':'#8F6FB9', justifyContent:'center', alignItems:'center', borderRightWidth:1, borderRightColor:'#6FAAB9'}}><Text>新款上市</Text></View></TouchableWithoutFeedback>
+               <TouchableWithoutFeedback onPress={() => this.setState({showIndex:2})}>
+                   <View style={{flex:1, backgroundColor: showIndex == 2 ? '#37C0DB':'#8F6FB9', justifyContent:'center', alignItems:'center', borderRightWidth:1, borderRightColor:'#6FAAB9'}}><Text>我的收藏</Text></View></TouchableWithoutFeedback>
             </View>       
-            {newProduct}
+            {showIndex == 0 ? gameRecommend : showIndex == 1 ? newProduct : null}
+
+            {
+                showAdvance ?
+                    <TouchableWithoutFeedback onPress={() => this.setState({showAdvance: !this.state.showAdvance})}>
+                          <View style={{position:'absolute', width, height, flexDirection:'row', alignItems:'center', backgroundColor:'rgba(8,18,17,.8)'}}>
+                                <SliderBox range={[5,6,7,8,9,10,11,12,13,14]} setAmount={(minAmount) => this.setState({minAmount})}/>
+                                <SliderBox range={[15,16,17,18,19,20,21,22,23,24]} setAmount={(maxAmount) => this.setState({maxAmount})}/>
+                          </View> 
+                    </TouchableWithoutFeedback>  : null        
+            }
+            
             {/*<View style={{width: width*.333, height:width*.4,backgroundColor:'yellowgreen'}}>
                 <Image source={require('../imgs/qq1.jpg')} style={{width: width*.333, height:width*.333}}/>
                 <Text style={{display:'flex',width: width*.333, height:.067*width, justifyContent:'center', alignItems:'center'}}>植物大战僵尸</Text>
             </View>
-            <View style={{width: width*.333, height:width*.4,backgroundColor:'yellowgreen'}}>
-                <Image source={require('../imgs/qq3.jpg')} style={{width: width*.333, height:width*.333}}/>
-                <Text style={{display:'flex',width: width*.333, height:.067*width, justifyContent:'center', alignItems:'center'}}>植物大战僵尸</Text>
-            </View>*/}
+           */}
        </View>    
     )
   }
 }
 
+class SliderBox extends Component {
+      constructor(props){
+            super(props);
+            this.state = {
+                animating: false,
+                prevDis: 0,
+                count: 0
+            }
+
+            this.targetVal = props.range[5];
+
+            this.animatedValue = new Animated.Value(0);
+            this.animatedValueUp = new Animated.Value(0);
+            this._value = 0;
+
+            this.animatedValue.addListener(({value}) => { 
+                const {prevDis} = this.props;
+                if(!this.state.animating) {
+                    if(value - prevDis > 25 ){
+                        this.animatedValue.setValue(25);
+                        return;
+                    }
+                    if(value - prevDis < -25 ){
+                        this.animatedValue.setValue(-25);
+                        return;
+                    }
+                }
+                this.animatedValueUp.setValue(value*.8);            
+                this._value = value;
+            })
+
+            this.panResponder = PanResponder.create({
+                onStartShouldSetPanResponder: (evt, gestureState) => true,
+                onMoveShouldSetPanResponder: (evt, gestureState) => {
+                    return true;   
+                },
+                onPanResponderGrant: (evt, gestureState) => {
+                    console.log(this._value);
+                    this.animatedValue.setOffset(this._value);
+                    this.animatedValue.setValue(0);
+                },
+                onPanResponderMove: (evt, gestureState) => {
+                    console.log(this._value, '2929939393993');
+                    if(this.state.animating) return;
+
+                    if(this.state.count == 5 && gestureState.vy >0) return;
+                    if(this.state.count == -4 && gestureState.vy <0) return;
+
+                    const {prevDis} = this.state;
+                    if((gestureState.vy > 0 && this._value - prevDis >= 25) || (gestureState.vy < 0 && this._value - prevDis <= -25)) {
+                        console.log('gestureState.vy---d-d-e-e-e--e-e-e-e-e')
+                        return;             
+                    }    
+
+                    if(gestureState.vy > .8){
+                        console.log('ozuzoppppppppppppppp');
+                        this.setState({animating: true});
+                        Animated.timing(this.animatedValue, {
+                            toValue: 50,
+                            duration: 300,
+                            easing: Easing.linear
+                        }).start(() => {
+                            const {count} = this.state;
+                            this.setState({animating: false}); 
+                            this.setState({prevDis: this._value, count: this.state.count + 1})
+                            this.targetVal = this.props.range[5 - count - 1];
+                            this.props.setAmount(this.targetVal);
+                        });
+                        return;
+                    }   
+
+                    if(gestureState.vy < -.8){
+                        console.log('ozuzoppppppppppppppp');
+                        this.setState({animating: true});
+                        Animated.timing(this.animatedValue, {
+                            toValue: -50,
+                            duration: 300,
+                            easing: Easing.linear
+                        }).start(() => {
+                            const {count} = this.state;
+                            this.setState({animating: false}); 
+                            this.setState({prevDis: this._value, count: this.state.count - 1});
+                            this.targetVal = this.props.range[5 - count + 1];
+                            this.props.setAmount(this.targetVal);
+                        });
+                        return;
+                    }               
+                    Animated.event([null, { dy: this.animatedValue}])(evt, gestureState);
+                },  
+                onPanResponderRelease: (evt, gestureState) => {
+                    console.log("release");
+                    console.log(this._value);
+                    console.log(gestureState.dy);
+                    if(this.state.animating) return;
+                    Animated.timing(this.animatedValue, {
+                        toValue: 0,
+                        duration: 300,
+                        easing: Easing.linear
+                    }).start();
+                }
+            });
+      }  
+
+      render() {
+          const transformStyle = {
+                transform: [
+                    {translateY: this.animatedValue}
+                ]
+          }  
+
+          const transformStyle1 = {
+                transform: [
+                    {translateY: this.animatedValueUp}
+                ]
+          }  
+          const {range} = this.props;  
+          const up = ['min', ...range];   
+          const down = [...range, 'max'];   
+          return (
+             <View style={{width:0.5*width, height, justifyContent:'center', alignItems:'center'}}> 
+                    <View style={{width:40, height:40, overflow:'hidden',backgroundColor:'#FFD39B', marginBottom:10}}>
+                        <Animated.View style={{width:40, height:440, position:'absolute', top:-200, ...transformStyle1}}>
+                                {
+                                    up.map((item,index) => (
+                                        <View style={{width:40, height:40, backgroundColor:'#FFD39B', justifyContent:'center', alignItems:'center'}}><Text>{item}</Text></View>
+                                    ))
+                                }
+                            </Animated.View>     
+                    </View>
+
+                    <View style={{width:50, height:50, overflow:'hidden', backgroundColor:'#FFB90F', marginBottom:10}} {...this.panResponder.panHandlers}>    
+                            <Animated.View style={{width:50, height:500, position:'absolute', top:-250, ...transformStyle}}>
+                                {
+                                    range.map((item,index) => (
+                                        <View style={{width:50, height:50, backgroundColor:'#FFB90F', justifyContent:'center', alignItems:'center'}}><Text>{item}</Text></View>
+                                    ))
+                                }
+                            </Animated.View>        
+                    </View> 
+
+                    <View style={{width:40, height:40, overflow:'hidden',backgroundColor:'#FFDEAD'}}>
+                        <Animated.View style={{width:40, height:440, position:'absolute', top:-240, ...transformStyle1}}>
+                                {
+                                    down.map((item,index) => (
+                                        <View style={{width:40, height:40, backgroundColor:'#FFD39BD', justifyContent:'center', alignItems:'center'}}><Text>{item}</Text></View>
+                                    ))
+                                }
+                            </Animated.View>     
+                    </View>
+             </View>    
+          )      
+      }    
+}
+
 function mapStateToProps (state) {
   return {
-     gamesList: state.people.gamesList
+     gamesList: state.people.gamesList,
   }
 }
 
@@ -409,7 +727,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     
-  }
+  },
+   container1: {
+        width,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: "#f1f2f6",
+    },
 })
 
 const pickerSelectStyles = StyleSheet.create({
@@ -434,6 +758,7 @@ const pickerSelectStyles = StyleSheet.create({
         color: 'yellow',
         paddingRight: 0, // to ensure the text is never behind the icon
     },
+    
     // inputAndroidContainer: {
     //     backgroundColor:'green'
     // },

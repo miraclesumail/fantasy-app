@@ -11,6 +11,11 @@ const initialState = {
         {name:'植物33', img: require('../imgs/qq2.jpg'), hot:3, isFavorite:true, id:111},
         {name:'植物11', img: require('../imgs/qq1.jpg'), hot:4, isFavorite:false, id:121},
         {name:'植物22', img: require('../imgs/qq3.jpg'), hot:3, isFavorite:false, id:131}
+      ],
+      newProducts: [
+        {name:'游戏王1', img: require('../imgs/qq2.jpg'), release_date:'2019-04-12', avg_person:100, avg_amount:1000, avg_bonus:888, avg_score:7.8}, 
+        {name:'游戏王2', img: require('../imgs/qq1.jpg'), release_date:'2019-04-10', avg_person:120, avg_amount:1100, avg_bonus:828, avg_score:8.8}, 
+        {name:'游戏王3', img: require('../imgs/qq3.jpg'), release_date:'2019-04-05', avg_person:130, avg_amount:900, avg_bonus:858, avg_score:8.6}, 
       ]
   }
 }
