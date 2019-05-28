@@ -1,5 +1,5 @@
 import React, { Component, useState, useRef, PureComponent, useEffect } from 'react'
-import { Text, View, ScrollView, StyleSheet, Dimensions, Animated, PanResponder, TouchableWithoutFeedback, Easing} from 'react-native'
+import { Text, View, ScrollView, StyleSheet, Dimensions, Animated, PanResponder, Image, TouchableWithoutFeedback, Easing} from 'react-native'
 import Sound from 'react-native-sound';
 import { connect } from 'react-redux';
 // 1795428369  1772908502  http://link.hhtjim.com/xiami/1772908502.mp3
@@ -94,13 +94,13 @@ class ScrollRefresh extends Component {
           hasLoad: 0,
           play: false,
           songs:[
-              {name:'阴天快乐', url: 'http://link.hhtjim.com/xiami/1772908502.mp3'}, 
-              {name:'光年之外', url: 'http://link.hhtjim.com/xiami/1795428369.mp3'},
-              {name:'平凡之路', url: 'http://link.hhtjim.com/xiami/1804804828.mp3'},
-              {name:'刀剑如梦', url: 'http://link.hhtjim.com/xiami/80738.mp3'},
-              {name:'一曲相思', url: 'http://link.hhtjim.com/xiami/1807469969.mp3'},
+              {name:'平凡之路', url: 'https://link.hhtjim.com/163/28815250.mp3', img:require('../imgs/pushu.jpg'), singer:'朴树'}, 
+              {name:'光年之外', url: 'https://link.hhtjim.com/163/449818741.mp3', img:require('../imgs/ziqi.jpg'), singer:'邓紫棋'},
+              {name:'刀剑如梦', url: 'https://link.hhtjim.com/163/5271860.mp3', img:require('../imgs/daojian.jpg'), singer:'周华健'},
+              {name:'Thats a girl', url: 'https://link.hhtjim.com/163/440208476.mp3', img:require('../imgs/qinghuaci.jpg'), singer:'周杰伦'}
+            //   {name:'一曲相思', url: 'http://link.hhtjim.com/xiami/1807469969.mp3'},
           ],
-          lastPlayIndex: null,
+          lastPlayIndex: 0,
           totalTime: 0,
           hasPlayed: 0,
           timer: null,
@@ -130,19 +130,11 @@ class ScrollRefresh extends Component {
       this._animatedValue.addListener(({value}) => {
            this.pullDownHeight = value;
            this.changeRefreshStatus();
-        //    if(value > width - 30){
-        //        this._value = width - 30;
-        //        console.log('axiba--');
-        //        this.animatedValue.setValue(width - 30);
-        //        return;
-        //    }
-        //    this.progressWidth.setValue()
-        //    this._value = value;
       })
 
       this.progressWidth.addListener(({value}) => {
            this._value = value;
-           this.animatedValue.setValue(value - 30);
+           this.animatedValue.setValue(value);
       })
 
       this._panResponderq = PanResponder.create({
@@ -151,48 +143,54 @@ class ScrollRefresh extends Component {
               return true;
           },
           onMoveShouldSetPanResponder: (evt, gestureState) => {
-              
               return true;
           },
           onPanResponderGrant: (evt, gestureState) => {
               console.log(gestureState.dy + '=====');
               //this.animatedValue.setOffset(this._value); 
               this.progressWidth.setOffset(this._value); 
+              this.progressWidth.setValue(0);
               this.progressAnimation.stop();         
           },
           onPanResponderMove: (evt, gestureState) => {
-                  console.log('gegegge');
                   console.log(gestureState.vx + 'ddddd');
-                  if(this._value >= width  && gestureState.vx > 0) return;
+                  if(this._value >= width - 40 && gestureState.vx > 0) return;
                   Animated.event([null, { dx: this.progressWidth}])(evt, gestureState);
           },
           onPanResponderRelease: (evt, gestureState) => {
-              console.log('release');
-              //console.log(this.animatedValue.toValue + 'dddddd');
-              //this.progressWidth.setValue(this._value);
-              //this.animatedValue.flattenOffset(); 
               this.progressWidth.flattenOffset(); 
-              console.log(this._value);
-              const duration = this.state.totalTime*(1 - this._value/width)*1000;
+              const {hasPlayed, totalTime} = this.state;
+              
+            //   if(hasPlayed/totalTime > this._value/(width - 40)){
+            //       console.log('实际上就是就是解决实际上就是');
+            //       this.progressWidth.setOffset(0);
+            //       this.progressWidth.setValue(hasPlayed/totalTime*(width - 40));
+            //   }
+              const duration = this.state.totalTime*(1 - this._value/(width - 40))*1000;
               console.log(duration);
               this.progressAnimation = Animated.timing(this.progressWidth, {
-                    toValue: width,
+                    toValue: width - 40,
                     duration,
                     easing: Easing.linear
               })
               clearInterval(this.timer);
-              this.setCurrent(parseInt(this.state.totalTime*this._value/width));
-              this.setState({hasPlayed: parseInt(this.state.totalTime*this._value/width)});
+              this.setCurrent(parseInt(this.state.totalTime*this._value/(width - 40)));
+              this.setState({hasPlayed: parseInt(this.state.totalTime*this._value/(width - 40))});
               this.startCount();
-              this.progressAnimation.start(() => {console.log('finish')});
-            //   clearInterval(this.anotherTimer);
+              if(this.state.sound && !this.state.play){
+                  this.play(this.state.lastPlayIndex)
+              }else{
+                  this.progressAnimation.start(() => {console.log('finish')});
+              }
             //   this.setState({nowSecond: parseInt(this._value/width*this.state.totalSecond)})
           }
       })
 
       this._panResponder = PanResponder.create({
           onStartShouldSetPanResponder: (evt, gestureState) => this.shouldBeTheResponder(evt),
-          onMoveShouldSetPanResponder: (evt, gestureState) => this.shouldBeTheResponder(evt),
+          onMoveShouldSetPanResponder: (evt, gestureState) => this.shouldBeTheResponder(evt) && !(gestureState.dx === 0 && gestureState.dy === 0)  ,
+          onStartShouldSetPanResponderCapture: (evt, gestureState) => false,
+          onMoveShouldSetPanResponderCapture: (evt, gestureState) => false,
           onPanResponderGrant: (evt, gestureState) => {
                if(this.state.scrollTop) return 
                console.log('------')         
@@ -225,32 +223,7 @@ class ScrollRefresh extends Component {
                }
                
           }
-      })
-
-      this._panResponder1 = PanResponder.create({
-          onStartShouldSetPanResponder: (evt, gestureState) => true,         
-          onMoveShouldSetPanResponder: (evt, gestureState) => true,
-          onPanResponderGrant: (evt, gestureState) => {
-               clearInterval(this.timer);
-               this.timer = null;
-               this.axiba = true;
-               console.log('------fffffff');
-               this.progress = Math.floor(this.state.hasPlayed/this.state.totalTime*240);         
-          },
-          onPanResponderMove: (evt, gestureState) => {
-               console.log('move');
-               console.log(gestureState.dx);
-               this.progress = this.progress + gestureState.dx;
-               console.log(this.progress);
-          },
-          onPanResponderRelease: (evt, gestureState) => {
-               console.log('release')
-               this.axiba = false;
-               this.setState({hasPlayed: Math.floor(this.progress/240*this.state.totalTime)});
-               this.state.sound.setCurrentTime(Math.floor(this.progress/240*this.state.totalTime));
-               this.startCount();
-          }
-      })
+      }) 
   }
   
   componentDidMount() {
@@ -349,15 +322,6 @@ class ScrollRefresh extends Component {
   }
 
   startKill = () => {
-    //   this.anotherTimer = setInterval(() => {
-    //        let {nowSecond, totalSecond} = this.state;
-    //        if(nowSecond == totalSecond){
-    //            clearInterval(this.anotherTimer);
-    //            this.anotherTimer = null;
-    //            return
-    //        }
-    //        this.setState({nowSecond: ++nowSecond});
-    //   }, 1000);
          this.progressAnimation = Animated.timing(this.progressWidth, {
               toValue: width,
               duration: this.state.totalTime*1000,
@@ -397,39 +361,69 @@ class ScrollRefresh extends Component {
       this.state.sound.setCurrentTime(time);
   }
 
+  playNext = (num) => {
+      const {lastPlayIndex, songs} = this.state;
+      if(num == 1 && lastPlayIndex == songs.length - 1) return;
+      if(num == -1 && lastPlayIndex == 0) return;
+
+      this.play(lastPlayIndex + num);
+  }
+
   play = (index) => {
-       this.setState({lastPlayIndex: index});
        if(this.state.sound && this.state.lastPlayIndex == index){
            if(!this.state.play){
-               this.state.sound.play(); 
-               this.startCount();
+               this.state.sound.play((success) => {
+                    alert('play end');
+                    clearInterval(this.timer);
+                    this.timer = null;
+                    this.progressWidth.setOffset(0); 
+                    this.progressWidth.setValue(0);
+                    this.play(this.state.lastPlayIndex+1);
+                  });      
+               this.progressAnimation.start();
+               !this.timer && this.startCount();
                this.setState({play:true})
            }else{
                this.state.sound.pause(); 
                clearInterval(this.timer);
+               this.timer = null;
+               this.progressAnimation.stop();
                this.setState({play:false})  
-           }          
+           } 
+               
        }else{
+           this.setState({lastPlayIndex: index});
            this.setState({hasPlayed: 0})
            this.setState({loading: true})
+           this.timer && clearInterval(this.timer);
+           
            if(this.state.sound) {
-               clearInterval(this.timer);
                this.state.sound.stop();
                this.state.sound.release();
-               this.setState({sound: null})          
-               this.setState({play:false})  
+               this.setState({sound: null});          
+               this.setState({play:false});  
+               this.progressWidth.setOffset(0); 
+               this.progressWidth.setValue(0);
            }  
            const sound = new Sound(this.state.songs[index].url, null, error => {  
-             sound.setNumberOfLoops(-1);
-             sound.play((success) => {
-                    alert('play end')
-             }); 
+             //sound.setNumberOfLoops(-1);
+             
              console.log(sound.getDuration());
              this.setState({totalTime: Math.floor(sound.getDuration())})
              this.startCount();
+             this.startKill();
              this.setState({loading: false})
              this.setState({play:true})  
-             this.setState({sound})          
+             this.setState({sound}, () => {
+                  this.state.sound.play((success) => {
+                    alert('play end');
+                    clearInterval(this.timer);
+                    this.timer = null;
+                    this.progressWidth.setOffset(0); 
+                    this.progressWidth.setValue(0);
+                    this.play(this.state.lastPlayIndex+1);
+                  }); 
+             })          
            })        
        }     
   }
@@ -453,17 +447,6 @@ class ScrollRefresh extends Component {
       }
   }
 
-  renderProgress = () => {
-      if(this.state.hasPlayed && this.state.totalTime) { 
-          const {hasPlayed, totalTime} = this.state;
-          const width = !this.axiba ? Math.floor(hasPlayed/totalTime*240) : parseInt(this.progress);
-          const left = width - 8;
-          return <View style={styles.loadingbar}><View style={[styles.progress, {width}]}></View><View {...this._panResponder1.panHandlers} style={[styles.indicator, {left}]}></View></View>
-      }else{
-          return null
-      }
-  }
-
   progressOnLayout = (e) => {
       console.log('dddd');
       console.log(e.nativeEvent.layout);
@@ -478,7 +461,7 @@ class ScrollRefresh extends Component {
   }
 
   renderClock() {
-      if(!this.state.play) return null;
+      //if(!this.state.play) return null;
       const minute =  ('0' + Math.floor(this.state.hasPlayed / 60)).slice(-2);
       const second =  ('0' + this.state.hasPlayed % 60).slice(-2);
       return (
@@ -501,7 +484,7 @@ class ScrollRefresh extends Component {
     const transformStyle = {
         transform: [{translateY: this._animatedValue}]
     }
-    const {nowSecond, totalSecond, refreshStatus} = this.state;
+    const {nowSecond, totalSecond, refreshStatus, songs, lastPlayIndex} = this.state;
     const nowWidth = Math.floor(width*nowSecond/totalSecond);
     console.log(nowWidth);
     let left = parseInt(this._value);
@@ -510,7 +493,7 @@ class ScrollRefresh extends Component {
     const refreshText = this.getRereshText(refreshStatus);
     
     return (
-        <View style={{position:'relative', height, width}}>
+       <View style={{position:'relative', height, width}}>
 
        <Animated.View style={[styles.scrollBox, transformStyle]} {...this._panResponder.panHandlers}>
             <ScrollView  contentContainerStyle={styles.contentContainer} scrollEnabled={this.state.scrollEnabled} 
@@ -524,7 +507,53 @@ class ScrollRefresh extends Component {
                       <Animated.View style={[styles.circle, {bottom: this._animatedBot}]}></Animated.View>
                 </View>  
 
-                <View style={[styles.content, {justifyContent: 'flex-start'}]}>
+                
+                <View style={[styles.content, {height:.7*height}]}>
+                    <View style={{width:.9*width, height:200, backgroundColor:'orange'}}>
+                        <Image source={songs[lastPlayIndex].img} style={{width:.9*width, height:200}}/>
+                    </View>  
+
+                    <View style={{justifyContent:'center', alignItems:'center',marginTop:20, marginBottom:5}}>
+                        <Text style={{lineHeight:20, fontSize:18, fontWeight:'bold'}}>{songs[lastPlayIndex].name}</Text>
+                    </View>    
+
+                    <View style={{justifyContent:'center', alignItems:'center',marginTop:6}}>
+                        <Text style={{lineHeight:18, fontSize:16, color:'#DB9037'}}>{songs[lastPlayIndex].singer}</Text>
+                    </View>
+                    
+          
+                    <View style={{flexDirection:'row', width:.6*width, height:.2*width, justifyContent:'space-between', alignItems:'center'}}>
+                        <TouchableWithoutFeedback onPress={() => this.playNext(-1)}>
+                             <View style={{width:.15*width, height:.1*width,justifyContent:'center', alignItems:'center', borderRadius:10, backgroundColor:lastPlayIndex == 0 ? 'grey':'#DB9F37'}}>
+                               <Text>上一首</Text>
+                             </View>
+                        </TouchableWithoutFeedback>
+                       
+                        <TouchableWithoutFeedback onPress={() => this.play(this.state.lastPlayIndex)}>
+                            <View style={{width:.2*width, height:.2*width,justifyContent:'center', alignItems:'center', 
+                             }}>
+                                {this.state.loading ? <Circles/> : null}
+                                <View style={{width:.1*width, height:.1*width,justifyContent:'center', alignItems:'center', 
+                             backgroundColor: this.state.play ? 'chocolate' : 'grey'}}>
+                                    {this.state.play ? <Text style>暂停</Text> : <Text>播放</Text>}
+                                </View>         
+                            </View>
+                        </TouchableWithoutFeedback>
+                        <TouchableWithoutFeedback onPress={() => this.playNext(1)}>
+                            <View style={{width:.15*width, height:.1*width,justifyContent:'center', alignItems:'center', borderRadius:10, backgroundColor:lastPlayIndex == songs.length - 1 ? 'grey':'#DB9F37'}}>
+                                <Text>下一首</Text>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                    <View style={styles.test} onLayout={this.progressOnLayout}>
+                        <Animated.View style={[styles.going, {width:this.progressWidth}]}></Animated.View>
+                        <Animated.View style={[styles.anotherCircle, {left: this.animatedValue}]} {...this._panResponderq.panHandlers}>
+                            {this.renderClock()}
+                        </Animated.View>
+                    </View> 
+                </View>
+                
+                {/*<View style={[styles.content, {justifyContent: 'flex-start'}]}>
                      {
                          this.state.songs.map((item, index) => (
                             <TouchableWithoutFeedback onPress={() => this.play(index)}>
@@ -533,18 +562,11 @@ class ScrollRefresh extends Component {
                                        this.state.lastPlayIndex == index ? <Text style={{color: 'red'}}>{item.name}</Text> : <Text>{item.name}</Text> 
                                     }
                                     {this.playInfo(index)}
-                                    {this.state.lastPlayIndex == index ? this.renderProgress() : null}
-                                    {this.state.lastPlayIndex == index ? this.renderClock() : null}
                                 </View>
                             </TouchableWithoutFeedback>   
                          ))    
-                     }
-
-                     <View style={styles.test} onLayout={this.progressOnLayout}>
-                           <Animated.View style={[styles.going, {width:this.progressWidth}]}></Animated.View>
-                           <Animated.View style={[styles.anotherCircle, {left: this.animatedValue}]} {...this._panResponderq.panHandlers}></Animated.View>
-                     </View>
-                </View>
+                     }           
+                </View>*/}
 
                 {/*<View style={[styles.content, {backgroundColor: 'chocolate', height:200}]}>
                       
@@ -571,26 +593,27 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         paddingTop: 0,
+        alignItems:'center'
     },
     test: {
-        height: 60,
+        height: 30,
         width,
         backgroundColor: 'grey',
-        marginTop: 30,
+        //marginTop: 30,
         justifyContent: 'center',
         alignItems: 'flex-start',
         position: 'relative'
     },
     going: {
-        height: 30,
+        height: 3,
         backgroundColor: 'orange'
     },
     anotherCircle: {
         position: 'absolute',
-        width: 30, 
-        height: 30,
-        borderRadius: 30,
-        top:15,
+        width: 40, 
+        height: 20,
+        borderRadius: 10,
+        //top:15,
         backgroundColor: 'pink'
     },
     refreshHead: {
@@ -608,7 +631,7 @@ const styles = StyleSheet.create({
         backgroundColor:'yellowgreen',
         justifyContent: 'center',
         alignItems: 'center',
-        height
+        height:50
     },
     circle: {
         width: 20,
@@ -667,10 +690,10 @@ const styles = StyleSheet.create({
     },
     clock: {
         position: 'absolute',
-        width:50,
-        height:30,
-        right:20,
-        bottom:10,
+        width:40,
+        height:20,
+        // right:20,
+        // bottom:10,
         justifyContent: 'center',
         alignItems:'center',
     },
