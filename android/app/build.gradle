@@ -134,6 +134,7 @@ android {
 }
 
 dependencies {
+    implementation project(':react-native-shake')
     implementation project(':react-native-interactable')
     implementation project(':react-native-reanimated')
     implementation project(':react-native-orientation')

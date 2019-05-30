@@ -28,6 +28,7 @@
     "react-native-reanimated": "^1.0.1",
     "react-native-redash": "^3.1.0",
     "react-native-scrollable-tab-view": "^0.10.0",
+    "react-native-shake": "^3.3.1",
     "react-native-shake-event": "^4.0.1",
     "react-native-sound": "^0.10.12",
     "react-native-splash-screen": "^3.2.0",
