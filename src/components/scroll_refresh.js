@@ -3,10 +3,30 @@ import { Text, View, ScrollView, StyleSheet, Dimensions, Animated, Vibration, Pa
 import Sound from 'react-native-sound';
 import { connect } from 'react-redux';
 import RNShake from 'react-native-shake';
+import LinearGradient from 'react-native-linear-gradient';
 import Interactable from 'react-native-interactable';
 import * as _ from 'lodash'
+
+
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+const lyrics = '[00:01.10]林俊杰 - 不死之身\n' + 
+'[00:03.20]作词：林秋离\n'+
+'[00:05.80]作曲：林俊杰\n'+
+'[00:07.80]专辑：曹操\n'+
+'[00:10.80]LRC：囧 賴潤誠@千千静听 QQ:85860288\n'+
+'[00:20.80-00:26.50]阳光放弃这最后一秒\n'+
+'[00:27.00-00:30.50]让世界被黑暗笼罩\n'+
+'[00:30.00-00:33.80]惩罚着人们的骄傲\n'+
+'[00:35.10-00:37.80]我忍受寒冷的煎熬\n'+
+'[00:38.00-00:40.20]和北风狂妄的咆哮\n'+
+'[00:41.00-00:42.30]对命运做抵抗\n'+
+'[00:44.70-00:47.20]这是无法避免的浩劫\n'+
+'[00:48.30-00:51.00]不论你以为你是谁\n'+
+'[00:52.50-00:54.60]任何事情任何一切'
+ 
 // 1795428369  1772908502  http://link.hhtjim.com/xiami/1772908502.mp3
 const {height, width} = Dimensions.get('window');
+//const fs = require();
 const circles = [0, 1, 2];
 const colors = ['yellow', 'green', 'blue'];
 class Circles extends Component {
@@ -28,6 +48,8 @@ class Circles extends Component {
                  this.setState({count: ++count})
               }
          }, 300)
+
+         
     }
 
     componentWillUnmount() {
@@ -117,7 +139,11 @@ class ScrollRefresh extends Component {
           totalSecond:60,
           nowSecond:0,
           isShaking: false,
-          showTip: false
+          showTip: false,
+          periods: [],
+          texts: [],
+          nowPeriod: null,
+          nowText: null
       }
       this._animatedValue = new Animated.Value(0);
       this._animatedBot = new Animated.Value(0);
@@ -238,6 +264,21 @@ class ScrollRefresh extends Component {
                 this.setState({isShaking: false})
             }, 1000)
       })
+
+      this.parseLyric(lyrics);
+  }
+
+  parseLyric = (text) => {
+    //将文本分隔成一行一行，存入数组
+    var lines = text.split('\n'), periods = [], texts = [];
+       
+    lines.forEach(v => {
+        //提取出时间[xx:xx.xx]
+        var splitTemp = v.split(']'), value = splitTemp[1], period = splitTemp[0].replace('[', '');
+        periods.push(period);
+        texts.push(value);
+    });
+    this.setState({periods, texts})
   }
 
   // panderMove判断刷新状态
@@ -470,8 +511,27 @@ class ScrollRefresh extends Component {
 
   startCount() {
       this.timer = setInterval(() => {
-          this.setState({hasPlayed: this.state.hasPlayed + 1});
-      }, 1000)
+          this.setState({hasPlayed: this.state.hasPlayed + .1}, () => {
+               const {hasPlayed, periods, texts} = this.state;
+               for(let i = 0; i < periods.length; i++){
+                   let temp = periods[i], comparedTime;
+                   if(temp.indexOf('-') != -1)
+                      comparedTime = temp.split('-')[0];
+                   else
+                      comparedTime = temp;
+                   const min = comparedTime.split(':')[0];
+                   const sec = comparedTime.split(':')[1].split('.')[0];      
+                   const wei = comparedTime.split(':')[1].split('.')[1];    
+                   const total = +min*60 + +sec*1 + +wei*.01;
+                   //console.log(total, min, sec, wei);
+                   if(total == hasPlayed.toFixed(1)) {
+                       console.log('找到饿了了');
+                       this.setState({nowPeriod: temp, nowText: texts[i]});
+                       break
+                   }         
+               }
+          });
+      }, 100)
   }  
 
   progressOnLayout = (e) => {
@@ -558,7 +618,7 @@ class ScrollRefresh extends Component {
     const transformStyle = {
         transform: [{translateY: this._animatedValue}]
     }
-    const {nowSecond, totalSecond, refreshStatus, songs, lastPlayIndex, mode, modeIndex, imgs, showTip} = this.state;
+    const {nowSecond, totalSecond, refreshStatus, songs, lastPlayIndex, mode, modeIndex, imgs, showTip, nowPeriod, nowText} = this.state;
     const nowWidth = Math.floor(width*nowSecond/totalSecond);
     console.log(nowWidth);
     let left = parseInt(this._value);
@@ -668,6 +728,11 @@ class ScrollRefresh extends Component {
             
        </Animated.View> 
         {this.state.showFreshFooter ? this.renderFooter() : null}
+        {
+            nowPeriod && nowText ? <Lyrics period={nowPeriod} text={nowText}/> : null
+        }
+
+        
         <View style={styles.sideMenuContainer} pointerEvents='box-none'>
                 <Interactable.View
                     ref='menuInstance'
@@ -684,6 +749,64 @@ class ScrollRefresh extends Component {
        </View>        
     )
   }
+}
+
+class Lyrics extends Component {
+    constructor(props){
+        super(props);
+        this.state = {};
+
+        this.animatedWidth = new Animated.Value(0);
+
+    }
+   
+    onLayout = ({nativeEvent: { layout: {x, y, width, height}}}) => {
+          console.log('sllslslslsls onn');
+          const {period:nowPeriod} = this.props;
+
+          if(nowPeriod.indexOf('-') == -1){
+                this.animatedWidth.setValue(width);
+          } else {
+                this.animatedWidth.setValue(0);
+                
+                const comparedTime = nowPeriod.split('-')[0];
+                const min = comparedTime.split(':')[0];
+                const sec = comparedTime.split(':')[1].split('.')[0];      
+                const wei = comparedTime.split(':')[1].split('.')[1];    
+                const total = +min*60 + +sec*1 + +wei*.01;
+
+                const comparedTime1= nowPeriod.split('-')[1];
+                const min1 = comparedTime1.split(':')[0];
+                const sec1 = comparedTime1.split(':')[1].split('.')[0];      
+                const wei1 = comparedTime1.split(':')[1].split('.')[1];    
+                const total1 = +min1*60 + +sec1*1 + +wei1*.01;
+                Animated.timing(this.animatedWidth, {
+                    toValue: width,
+                    duration: (total1 - total)*1000,
+                    easing: Easing.linear
+                }).start()
+          }   
+    }
+
+    render(){
+        // const transformStyle = {
+        //       transform: [
+        //           {translateX: this.animatedValue}
+        //       ]
+        // }
+        return (
+            <View style={{position:'absolute', bottom:120, width, height:30, flexDirection:'row', justifyContent:'center'}}>
+                  <View onLayout={this.onLayout} style={{height:30, justifyContent:'center', overflow:'hidden'}}>
+                      <Text>{this.props.text}</Text>
+
+                      <AnimatedLinearGradient colors={['#ffffff', '#ffffff']} style={{height:30, position:'absolute', left:0,top:0,width: this.animatedWidth, 
+                        justifyContent:'center', overflow:'hidden'}}> 
+                         <Text style={{color:'pink'}}>{this.props.text}</Text>
+                      </AnimatedLinearGradient>
+                  </View>
+            </View>
+        )
+    }
 }
 
 const styles = StyleSheet.create({
