@@ -30,7 +30,7 @@ class PageOne extends Component {
           onPanResponderRelease: (evt, gestureState) => {
               console.log('release');
               console.log(gestureState.vx);
-              this.animatedValue.flattenOffset()
+              //this.animatedValue.flattenOffset()
           }
       })
   }
