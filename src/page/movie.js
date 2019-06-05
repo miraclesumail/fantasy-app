@@ -152,7 +152,7 @@ export default class Movie extends Component{
         <Text style={styles.btn}
                 onPress={() => this.props.navigation.navigate('Flats')}
         >去flatlist</Text>
-        <Text>{this.state.aa}</Text>
+        <Text onPress={() => this.props.navigation.navigate('Friends')}>朋友圈</Text>
         <Pure />
         <Surface width={300} height={400}>
          {/*

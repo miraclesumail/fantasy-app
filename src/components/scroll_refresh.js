@@ -10,19 +10,43 @@ import * as _ from 'lodash'
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 const lyrics = '[00:01.10]林俊杰 - 不死之身\n' + 
-'[00:03.20]作词：林秋离\n'+
+'[00:03.80]作词：林秋离\n'+
 '[00:05.80]作曲：林俊杰\n'+
-'[00:07.80]专辑：曹操\n'+
+'[00:08.80]专辑：曹操\n'+
 '[00:10.80]LRC：囧 賴潤誠@千千静听 QQ:85860288\n'+
-'[00:20.80-00:26.50]阳光放弃这最后一秒\n'+
-'[00:27.00-00:30.50]让世界被黑暗笼罩\n'+
-'[00:30.00-00:33.80]惩罚着人们的骄傲\n'+
-'[00:35.10-00:37.80]我忍受寒冷的煎熬\n'+
-'[00:38.00-00:40.20]和北风狂妄的咆哮\n'+
-'[00:41.00-00:42.30]对命运做抵抗\n'+
-'[00:44.70-00:47.20]这是无法避免的浩劫\n'+
-'[00:48.30-00:51.00]不论你以为你是谁\n'+
-'[00:52.50-00:54.60]任何事情任何一切'
+'[00:44.80-00:47.60]阳光放弃这最后一秒\n'+
+'[00:47.00-00:49.90]让世界被黑暗笼罩\n'+
+'[00:50.00-00:52.50]惩罚着人们的骄傲\n'+
+'[00:54.50-00:56.80]我忍受寒冷的煎熬\n'+
+'[00:57.00-00:59.20]和北风狂妄的咆哮\n'+
+'[00:59.30-01:02.10]对命运做抵抗\n'+
+'[01:03.70-01:06.00]这是无法避免的浩劫\n'+
+'[01:06.30-01:08.20]不论你以为你是谁\n'+
+'[01:08.40-01:11.50]任何事情任何一切\n'+
+'[01:12.90-01:15.10]喔 亲爱的别难过\n'+
+'[01:15.30-01:18.90]只要紧紧握着我的手\n'+
+'[01:21.60-01:26.00]地球毁灭了以后\n' + 
+'[01:26.40-01:27.60]我仍爱你\n' + 
+'[01:27.80-01:31.00]爱的不知天高地厚\n' + 
+'[01:31.20-01:35.70]为你再造一个新宇宙\n' + 
+'[01:35.90-01:40.20]不死之身 不死的温柔\n' +  
+'[01:57.30-01:59.90]这是无法避免的浩劫\n' +  
+'[02:00.00-02:02.00]不论你以为你是谁\n' +  
+'[02:02.20-02:04.90]任何事情任何一切\n' +  
+'[02:06.50-02:08.80]喔 亲爱的别难过\n' +  
+'[02:08.90-02:13.30]只要紧紧握着我的手\n' +  
+'[02:15.20-02:20.20]地球毁灭了以后\n' +  
+'[02:20.30-02:21.10]我仍爱你\n' +  
+'[02:21.30-02:24.60]爱的不知天高地厚\n' +  
+'[02:24.70-02:29.20]为你再造一个新宇宙\n' + 
+'[02:29.30-02:33.40]不死之身 不死的温柔\n' +  
+'[02:50.20-02:54.80]撑着悲伤不回头\n' +  
+'[02:54.90-02:56.90]却感觉此刻你\n' +  
+'[02:57.00-02:59.20]停不了的泪流\n' +  
+'[02:59.60-03:04.20]唯有爱 才能永垂不朽\n' +  
+'[03:04.50-03:08.80]唯有你 我才能找回我\n' +  
+'[03:08.90-03:13.50]唯有你 我才能找回我\n' +  
+'[03:13.70-03:14.50]唯有你 我才能找回我'  
  
 // 1795428369  1772908502  http://link.hhtjim.com/xiami/1772908502.mp3
 const {height, width} = Dimensions.get('window');
@@ -133,6 +157,8 @@ class ScrollRefresh extends Component {
           lastPlayIndex: 0,
           totalTime: 0,
           hasPlayed: 0,
+          hasProgressed: 0, // 记录歌词播放
+          gechiPlayed: 0,
           timer: null,
           sound: null,
           loading: false,
@@ -142,6 +168,9 @@ class ScrollRefresh extends Component {
           showTip: false,
           periods: [],
           texts: [],
+          gechiIndex: -1,
+          hasFound: false,
+          foundTime: null,
           nowPeriod: null,
           nowText: null
       }
@@ -149,9 +178,9 @@ class ScrollRefresh extends Component {
       this._animatedBot = new Animated.Value(0);
       this.progressWidth = new Animated.Value(0);
       this.timer = null;
+      this.timerPro = null; 
       this.refreshTime = '';
       this.progressAnimation = null;
-
       this.showMode = false;
 
       this.animatedValue = new Animated.Value(0);
@@ -447,6 +476,7 @@ class ScrollRefresh extends Component {
              //sound.setNumberOfLoops(-1);
              this.setState({totalTime: Math.floor(sound.getDuration())})
              this.startCount();
+             this.startFindGeci();
              this.startKill();
              this.setState({loading: false})
              this.setState({play:true})  
@@ -467,13 +497,18 @@ class ScrollRefresh extends Component {
                });      
                this.progressAnimation.start();
                !this.timer && this.startCount();
-               this.setState({play:true})
+               this.setState({play:true});
+               this.startFindGeci();
+               this.lyrics.animation.start();
            }else{
                this.state.sound.pause(); 
                clearInterval(this.timer);
                this.timer = null;
                this.progressAnimation.stop();
-               this.setState({play:false})  
+               this.setState({play:false});
+               clearInterval(this.timer11);
+               this.timer11 = null;
+               this.lyrics.pause();
        }     
   }
 
@@ -509,30 +544,51 @@ class ScrollRefresh extends Component {
       this.progressWidth.setValue(0);
   }
 
-  startCount() {
+  startCount = () => {
       this.timer = setInterval(() => {
-          this.setState({hasPlayed: this.state.hasPlayed + .1}, () => {
-               const {hasPlayed, periods, texts} = this.state;
-               for(let i = 0; i < periods.length; i++){
-                   let temp = periods[i], comparedTime;
-                   if(temp.indexOf('-') != -1)
-                      comparedTime = temp.split('-')[0];
-                   else
-                      comparedTime = temp;
-                   const min = comparedTime.split(':')[0];
-                   const sec = comparedTime.split(':')[1].split('.')[0];      
-                   const wei = comparedTime.split(':')[1].split('.')[1];    
-                   const total = +min*60 + +sec*1 + +wei*.01;
-                   //console.log(total, min, sec, wei);
-                   if(total == hasPlayed.toFixed(1)) {
-                       console.log('找到饿了了');
-                       this.setState({nowPeriod: temp, nowText: texts[i]});
-                       break
-                   }         
-               }
-          });
-      }, 100)
+          this.setState({hasPlayed: this.state.hasPlayed + 1});     
+      }, 1000)   
   }  
+
+  startFindGeci = () => { 
+      this.timer11 = setInterval(() => {
+          this.setState({gechiPlayed: this.state.gechiPlayed + .1}, () => {
+             const {gechiIndex, periods, gechiPlayed} = this.state;
+              console.log(gechiPlayed);
+
+             // 到了最后一圈 清除定时器
+             if(gechiIndex == periods.length - 1) {
+                 clearInterval(this.timer11);
+                 this.timer11 = null;
+                 return;
+             }
+
+             let period = periods[gechiIndex + 1], comparedTime;
+             
+             if(period.indexOf('-') != -1)
+                comparedTime = period.split('-')[0]
+             else
+                comparedTime = period 
+
+             const min = comparedTime.split(':')[0];
+             const sec = comparedTime.split(':')[1].split('.')[0];      
+             const wei = comparedTime.split(':')[1].split('.')[1];    
+             const total = +min*60 + +sec*1 + +wei*.01; 
+
+             if(total == gechiPlayed.toFixed(1)) {
+                 this.setState({hasFound: false}, () => {
+                         this.setState({gechiIndex: gechiIndex + 1, foundTime: gechiPlayed, hasFound:true})
+                 })
+             }   
+          });
+      }, 100)   
+  }
+
+  changeNext = () => {
+      console.log('change dkdkdkdk');
+      const index = this.state.gechiIndex;
+      this.setState({hasFound:false, gechiIndex: index + 1})    
+  }
 
   progressOnLayout = (e) => {
       console.log('dddd');
@@ -543,8 +599,8 @@ class ScrollRefresh extends Component {
 
   // seek play time
   onClick = (evt) => {
+      const {periods} = this.state;
       if(!this.state.sound) return;
-      console.log(evt.nativeEvent);
       this.timer && clearInterval(this.timer);
       this.timer = null;
       const progressWidth = (evt.nativeEvent.pageX/width)*(width-40);
@@ -562,6 +618,51 @@ class ScrollRefresh extends Component {
       this.setCurrent(parseInt(this.state.totalTime*this._value/(width - 40)));
       this.setState({hasPlayed: parseInt(this.state.totalTime*this._value/(width - 40))});
       this.startCount();
+
+      // 歌词逻辑
+      clearInterval(this.timer11);
+      this.timer11 = null;
+      this.setState({hasFound: false}, () => {
+      const tempTime = parseInt(this.state.totalTime*this._value/(width - 40));
+
+      for(let i = 0; i < periods.length; i++){
+                let temp = periods[i], comparedTime;
+                if(temp.indexOf('-') != -1)
+                    comparedTime = temp.split('-')[0];
+                else
+                    comparedTime = temp;
+                const min = comparedTime.split(':')[0];
+                const sec = comparedTime.split(':')[1].split('.')[0];      
+                const wei = comparedTime.split(':')[1].split('.')[1];    
+                const total = +min*60 + +sec*1 + +wei*.01;
+                
+
+                let temp1, comparedTime1;
+
+                if(i + 1 <= periods.length - 1){
+                    temp1 = periods[i+1]
+                    if(temp1.indexOf('-') != -1)
+                        comparedTime1 = temp1.split('-')[0];
+                    else
+                        comparedTime1 = temp1;
+                    const min1 = comparedTime1.split(':')[0];
+                    const sec1 = comparedTime1.split(':')[1].split('.')[0];      
+                    const wei1 = comparedTime1.split(':')[1].split('.')[1];    
+                    const total1 = +min1*60 + +sec1*1 + +wei1*.01;  
+
+                    if(tempTime >= total && tempTime < total1) {
+                        this.setState({gechiIndex:i, foundTime: tempTime, hasFound: true, gechiPlayed: tempTime});
+                        this.startFindGeci();
+                        break;
+                    }    
+                } else { // 最后一圈 无需比较
+                    this.setState({gechiIndex:i, foundTime: tempTime, hasFound: true, gechiPlayed: tempTime});
+                    clearInterval(this.timer11);
+                    this.timer11 = null;
+                }            
+        }
+      })
+
       if(this.state.sound && !this.state.play){
          this.play(this.state.lastPlayIndex);
       }else{
@@ -618,7 +719,7 @@ class ScrollRefresh extends Component {
     const transformStyle = {
         transform: [{translateY: this._animatedValue}]
     }
-    const {nowSecond, totalSecond, refreshStatus, songs, lastPlayIndex, mode, modeIndex, imgs, showTip, nowPeriod, nowText} = this.state;
+    const {nowSecond, totalSecond, refreshStatus, songs, periods, texts, lastPlayIndex, mode, modeIndex, imgs, showTip, gechiPlayed, sound, gechiIndex,foundTime} = this.state;
     const nowWidth = Math.floor(width*nowSecond/totalSecond);
     console.log(nowWidth);
     let left = parseInt(this._value);
@@ -729,10 +830,8 @@ class ScrollRefresh extends Component {
        </Animated.View> 
         {this.state.showFreshFooter ? this.renderFooter() : null}
         {
-            nowPeriod && nowText ? <Lyrics period={nowPeriod} text={nowText}/> : null
+          this.state.hasFound ? <Lyrics ref={component => this.lyrics = component} period={periods[gechiIndex]} nextPeriod={periods[gechiIndex + 1 ]} text={texts[gechiIndex]} gechiPlayed={foundTime}/> : null
         }
-
-        
         <View style={styles.sideMenuContainer} pointerEvents='box-none'>
                 <Interactable.View
                     ref='menuInstance'
@@ -754,21 +853,20 @@ class ScrollRefresh extends Component {
 class Lyrics extends Component {
     constructor(props){
         super(props);
-        this.state = {};
+        this.state = {
+            width:0
+        };
 
         this.animatedWidth = new Animated.Value(0);
-
     }
    
     onLayout = ({nativeEvent: { layout: {x, y, width, height}}}) => {
           console.log('sllslslslsls onn');
-          const {period:nowPeriod} = this.props;
-
+          let {period:nowPeriod, gechiPlayed, changeNext, nextPeriod} = this.props;
+          this.setState({width})
           if(nowPeriod.indexOf('-') == -1){
                 this.animatedWidth.setValue(width);
-          } else {
-                this.animatedWidth.setValue(0);
-                
+          } else {                
                 const comparedTime = nowPeriod.split('-')[0];
                 const min = comparedTime.split(':')[0];
                 const sec = comparedTime.split(':')[1].split('.')[0];      
@@ -780,29 +878,48 @@ class Lyrics extends Component {
                 const sec1 = comparedTime1.split(':')[1].split('.')[0];      
                 const wei1 = comparedTime1.split(':')[1].split('.')[1];    
                 const total1 = +min1*60 + +sec1*1 + +wei1*.01;
-                Animated.timing(this.animatedWidth, {
-                    toValue: width,
-                    duration: (total1 - total)*1000,
-                    easing: Easing.linear
-                }).start()
+                gechiPlayed = gechiPlayed > total1 ? total1 : gechiPlayed;
+
+                const percent = (gechiPlayed - total)/(total1 - total);
+                this.animatedWidth.setValue(width*percent);
+
+                // nextPeriod = nextPeriod.split('-') != -1 ? nextPeriod.split('-')[0] : nextPeriod;
+                //     const min2 = nextPeriod.split(':')[0];
+                //     const sec2 = nextPeriod.split(':')[1].split('.')[0];      
+                //     const wei2 = nextPeriod.split(':')[1].split('.')[1];    
+                //     const total2 = +min2*60 + +sec2*1 + +wei2*.01;
+                if(gechiPlayed < total1) {
+                   this.animation = Animated.timing(this.animatedWidth, {
+                        toValue: width,
+                        duration: (total1 - gechiPlayed)*1000,
+                        easing: Easing.linear
+                   })
+                   this.animation.start();
+                }
+                    
           }   
     }
 
+    pause = () => {
+        this.animation.stop();
+    }
+
     render(){
-        // const transformStyle = {
-        //       transform: [
-        //           {translateX: this.animatedValue}
-        //       ]
-        // }
         return (
             <View style={{position:'absolute', bottom:120, width, height:30, flexDirection:'row', justifyContent:'center'}}>
                   <View onLayout={this.onLayout} style={{height:30, justifyContent:'center', overflow:'hidden'}}>
                       <Text>{this.props.text}</Text>
 
-                      <AnimatedLinearGradient colors={['#ffffff', '#ffffff']} style={{height:30, position:'absolute', left:0,top:0,width: this.animatedWidth, 
+                      {/*<AnimatedLinearGradient colors={['#ffffff', '#ffffff']} style={{height:30, position:'absolute', left:0,top:0,width: this.animatedWidth, 
                         justifyContent:'center', overflow:'hidden'}}> 
                          <Text style={{color:'pink'}}>{this.props.text}</Text>
-                      </AnimatedLinearGradient>
+                      </AnimatedLinearGradient>*/}
+
+                      <Animated.View style={{position:'absolute', height:30, left:0, top:0, overflow:'hidden', width: this.animatedWidth}}>
+                                <View style={{position:'absolute', height:30, left:0, top:0, justifyContent:'center', width: this.state.width}}>
+                                    <Text style={{color:'pink'}}>{this.props.text}</Text>
+                                </View>
+                      </Animated.View>
                   </View>
             </View>
         )

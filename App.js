@@ -39,6 +39,7 @@ import HomePage from './src/view/home'
 import Flat from './src/view/flat'
 import TestSelect from './src/view/testSelect'
 import Slider from './src/view/slider'
+import Friends from './src/view/friends'
 
 Date.prototype.Format = function(fmt)   
 {    
@@ -337,6 +338,9 @@ const Movies = createStackNavigator({
   },
   Flats: {
     screen: Flat
+  },
+  Friends: {
+    screen: Friends
   }
   },
   {
@@ -346,9 +350,10 @@ const Movies = createStackNavigator({
         height:0,
         overflow: 'hidden'
       },
-      headerTintColor: '#fff',
+      headerTintColor: '#f5d300',
       headerTitleStyle: {
         fontWeight: 'bold',
+        backgroundColor: 'pink'
       }
     }
 }
