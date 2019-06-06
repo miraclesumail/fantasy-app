@@ -2,6 +2,10 @@ import React, { Component, Fragment, useState, useEffect} from 'react'
 import { Text, View, FlatList, Dimensions, Image, Animated, PanResponder, StyleSheet, Easing, TouchableWithoutFeedback } from 'react-native'
 
 const { width, height } = Dimensions.get('window');
+import {
+  PinchGestureHandler,
+  State,
+} from 'react-native-gesture-handler';
 
 const styles = StyleSheet.create({
       imgBox: {
@@ -26,7 +30,6 @@ function Post({item, setActive, onLayout}) {
            setVisible(true);
         },2000)
         return () => {
-            console.log('dddd')
         };
      }, [])
 
@@ -47,7 +50,7 @@ function Post({item, setActive, onLayout}) {
                                 
                                 (index+1)%3 ? 
                                 <TouchableWithoutFeedback onPress={() => setActive(index)}>
-                                    <View style={{width:.24*width, height:.2*width,marginRight:.015*width, marginBottom:.015*width}}>
+                                    <View style={{width:.24*width, height:.2*width,marginRight:.014*width, marginBottom:.015*width}}>
                                         <Image source={item} style={{width:.24*width, height:.2*width}}/>
                                     </View> 
                                 </TouchableWithoutFeedback>
@@ -70,7 +73,6 @@ function Post({item, setActive, onLayout}) {
 class ImgMask extends Component{
     constructor(props){
         super(props);
-        console.log(props.layouts);
         this.state = {
              horizonMove:false,
              missing: false
@@ -91,17 +93,15 @@ class ImgMask extends Component{
 
         this.animatedXY.addListener(value => {
             this._value = value;
-            console.log(value.y);
             
             if(this.horizonMove){
                 this.animatedValue.setValue(value.x + this.initAnimatedVal);
             } else {
                 if(this.onMoving) {
-                                    console.log('dbdjd大口大口快点快点快点');
 
                     this.animatedY.setValue(value.y < 0 ? 0 : -value.y/height*.25*height);
                     this.animatedOpacity.setValue(value.y < 0 ? .8 : (1 - value.y/height)*.8);
-                    this.animatedScale.setValue(value.y < 0 ? 1 : (1 - value.y/height));
+                    this.animatedScale.setValue(value.y < 0 ? 1 : (1 - value.y/(2*height)));
  
                     
                     // this.animatedY = this.animatedXY.y.interpolate({
@@ -131,7 +131,6 @@ class ImgMask extends Component{
                 return true;   
             },
             onPanResponderGrant: (evt, gestureState) => {
-                console.log('djdkkdkdkdk速度快打开');
                  this.animatedXY.setOffset({
                    x: this._value.x,
                    y: this._value.y
@@ -144,8 +143,8 @@ class ImgMask extends Component{
             onPanResponderMove: (evt, gestureState) => {
                 if(!this.onMoving && gestureState.dy < 0)
                     return false;
-              
-                if(!this.state.horizonMove && !this.onMoving && Math.abs(gestureState.dx) > Math.abs(gestureState.dy)){
+                console.log(gestureState.vy);
+                if(!this.state.horizonMove && !this.onMoving && Math.abs(gestureState.vy) < 0.0000000000006){
                         this.setState({horizonMove: true});
                         this.horizonMove = true;
                 }
@@ -203,16 +202,37 @@ class ImgMask extends Component{
 
                         Animated.timing(this.animatedScale, {
                             toValue: .3,
-                            duration:500,
+                            duration:400,
                             useNativeDriver: true
                         }).start(() => {
-                            this.props.setActive(null);
+                            
                         })
+
+                        setTimeout(() => {
+                            this.props.setActive(null);
+                        }, 400);
                     }
-    
                 }
             }
         });
+
+        this._baseScale = new Animated.Value(1);
+  this._pinchScale = new Animated.Value(1);
+  this._scale = Animated.multiply(this._baseScale, this._pinchScale);
+  this._lastScale = 1;
+ this._onPinchGestureEvent = Animated.event(
+    [{ nativeEvent: { scale: this._pinchScale } }],
+    { useNativeDriver: true }
+  );
+
+  this._onPinchHandlerStateChange = event => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      this._lastScale *= event.nativeEvent.scale;
+      this._baseScale.setValue(this._lastScale);
+      this._pinchScale.setValue(1);
+    }
+  };
+
     }
    
     render(){
@@ -243,9 +263,11 @@ class ImgMask extends Component{
                     {
                         imgs.map((item,index) => (   
                             index == active ? 
-                            <Animated.View style={[styles.imgBox, {left:index*width}, transformImg]}>
-                                <Animated.Image source={item} style={{width:.95*width, height:.4*height, transform:[{scale: this.animatedScale}, {translateY: this.animatedY}]}} {...this.panResponder.panHandlers}/>
-                            </Animated.View> : 
+                          
+                                <Animated.View style={[styles.imgBox, {left:index*width}, transformImg]}>
+                                    <Animated.Image source={item} style={{width:.95*width, height:.4*height, transform:[{scale: this._scale}, {translateY: this.animatedY}]}} {...this.panResponder.panHandlers}/>
+                                </Animated.View>
+                             : 
                             <Animated.View style={[styles.imgBox, {left:index*width}]}>
                                 <Image source={item} style={{width:.95*width, height:.4*height}}/>
                             </Animated.View>
@@ -273,7 +295,6 @@ class ImgMask extends Component{
 class Friends extends Component {
     static navigationOptions = ({ navigation, navigationOptions }) => {
         const { params } = navigation.state;
-        console.log(navigationOptions);
         return {
           title: params ? params.otherParam : '朋友圈',
           /* These values are used instead of the shared configuration! */
@@ -302,7 +323,6 @@ class Friends extends Component {
   }   
 
    onLayout = ({nativeEvent: {layout:{x, y, width, height}}}) => {
-        console.log('射雕搜到打不打得多久');
         this.setState({layouts: {x,y}})
    }
 
