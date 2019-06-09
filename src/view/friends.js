@@ -1,5 +1,5 @@
 import React, { Component, Fragment, useState, useEffect} from 'react'
-import { Text, View, FlatList, Dimensions, Image, Animated, PanResponder, StyleSheet, Easing, TouchableWithoutFeedback } from 'react-native'
+import { Text, TextInput, View, FlatList, Dimensions, Image, Animated, PanResponder, StyleSheet, Easing, TouchableWithoutFeedback, UIManager, findNodeHandle } from 'react-native'
 
 const { width, height } = Dimensions.get('window');
 import {
@@ -20,22 +20,41 @@ const imgs = [
     require('../imgs/caocao.jpg'), require('../imgs/daojian.jpg'), require('../imgs/pushu.jpg')
 ]
 
-function Post({item, setActive, onLayout}) {
+const paintRed = Component => React.forwardRef(
+    // 此例中，ref 为 ForwardRef 中的 textRef
+    (props, ref) => (
+        <Component forwardedRef={ref} {...props}></Component>
+    )
+)
+
+function Post({item, setActive, onBoxLayout, onImgLayout, index, forwardedRef, likes, showComment}) {
      const arrs = item.content.split('\n');
 
      const [visible, setVisible] = useState(false);
-
+     const [widths, setWidth] = useState(0);
+     
+     let animatedWidth = new Animated.Value(widths);
+     
      useEffect(() => {
-        setTimeout(() => {
-           setVisible(true);
-        },2000)
+        if(visible && !widths)
+            Animated.timing(animatedWidth, {
+                toValue: .3*width,
+                duration: 150
+            }).start(() => setWidth(.3*width))
+
+        if(!visible && widths) {
+           Animated.timing(animatedWidth, {
+                toValue: 0,
+                duration: 150
+            }).start(() => setWidth(0)) 
+        }     
         return () => {
         };
-     }, [])
+     }, [visible])
 
      return (
-            <View style={{width:.9*width, flexDirection:'row', borderBottomWidth:1, borderBottomColor:'#f0f0f0', paddingBottom:10}}>
-                <View><Image source={require('../imgs/qq2.jpg')} style={{width:.1*width, height:.1*width}}/></View>
+            <View ref={forwardedRef} style={{width:.9*width, flexDirection:'row', borderBottomWidth:1, borderBottomColor:'#f0f0f0', paddingBottom:10}} onLayout={onBoxLayout}>
+                <View><Image source={item.avatar} style={{width:.1*width, height:.1*width}}/></View>
                 <View style={{width:.8*width, paddingLeft:.05*width}}>
                     <View><Text style={{fontSize:20, fontWeight:'bold', color: '#4F88F2'}}>{item.name}</Text></View>
                     {
@@ -44,18 +63,18 @@ function Post({item, setActive, onLayout}) {
                         ))
                     }
 
-                    <View style={{width:.75*width, flexDirection:'row', flexWrap:'wrap', marginTop:.015*width}} onLayout={onLayout}>
+                    <View style={{width:.75*width, flexDirection:'row', flexWrap:'wrap', marginTop:.015*width}} onLayout={onImgLayout}>
                         {
-                            imgs.map((item,index) => (
+                            imgs.map((item,index1) => (
                                 
-                                (index+1)%3 ? 
-                                <TouchableWithoutFeedback onPress={() => setActive(index)}>
+                                (index1+1)%3 ? 
+                                <TouchableWithoutFeedback onPress={() => setActive(index1, index)}>
                                     <View style={{width:.24*width, height:.2*width,marginRight:.014*width, marginBottom:.015*width}}>
                                         <Image source={item} style={{width:.24*width, height:.2*width}}/>
                                     </View> 
                                 </TouchableWithoutFeedback>
                                 : 
-                                <TouchableWithoutFeedback onPress={() => setActive(index)}>
+                                <TouchableWithoutFeedback onPress={() => setActive(index1, index)}>
                                     <View style={{width:.24*width, height:.2*width, marginBottom:.015*width}}>
                                          <Image source={item} style={{width:.24*width, height:.2*width}}/>
                                     </View>
@@ -64,11 +83,56 @@ function Post({item, setActive, onLayout}) {
                         }
                     </View>
 
-                    <View><Text style={{color:'grey', fontSize:14,lineHeight:20}}>{item.time}</Text></View>
+                    <View style={{width:.75*width, flexDirection:'row', justifyContent:'space-between'}}>
+                        <View><Text style={{color:'grey', fontSize:14,lineHeight:20}}>{item.time}</Text></View>
+                        <TouchableWithoutFeedback onPress={() => setVisible(!visible)}>
+                            <View style={{backgroundColor:'#f0f0f0', width:.08*width, height:20, borderRadius:4, marginRight:5,justifyContent:'center', alignItems:'center'}}>
+                                <Text style={{fontSize:18, lineHeight:20, fontWeight:'bold', color:'#c6c6c6'}}>..</Text>
+                            </View>
+                        </TouchableWithoutFeedback>
+                        
+                        <Animated.View style={{position:'absolute', right:.12*width, borderRadius:5, flexDirection:'row', width:animatedWidth, height:20, justifyContent:'space-around',alignItems:'center', backgroundColor:'#495569'}}>
+                           <TouchableWithoutFeedback onPress={() => likes()}>
+                                <View><Text style={{color:'pink'}}>❤️赞</Text></View>
+                           </TouchableWithoutFeedback>
+
+                           <TouchableWithoutFeedback onPress={() => showComment(index)}>
+                                <View><Text style={{color:'pink'}}>🐂评论</Text></View> 
+                           </TouchableWithoutFeedback>        
+                           {
+                               visible || widths ? 
+                                <View style={{position:'absolute', width:10, height:10, right:0, top:1, backgroundColor:'#495569', transform:[{rotate:'45deg'}, {translateX:5}]}}>
+                                </View> : null
+                           }       
+                        </Animated.View>
+                    </View>
+                    {
+                        item.likes ? 
+                        <View style={{width:.75*width, marginVertical:8, backgroundColor:'#f0f0f0'}}>
+                          <Text style={{lineHeight:25}}>❤️ +{item.likes}</Text>
+                        </View> : null
+                    }   
+
+                    {
+                        item.comments ? 
+                        <Fragment>
+                            {
+                                item.comments.map(item => (
+                                    <View style={{width:.75*width, paddingLeft:5, flexDirection:'row', backgroundColor:'#f0f0f0'}}>
+                                       <Text style={{lineHeight:25, color:'#E48947'}}>阿西吧: </Text> 
+                                       <Text style={{lineHeight:25}}>{item}</Text>
+                                    </View> 
+                                ))
+                            } 
+                        </Fragment> : null
+                    }             
                 </View>     
             </View>
      )
 }
+
+const DecPost = paintRed(Post)
+
 
 class ImgMask extends Component{
     constructor(props){
@@ -100,8 +164,8 @@ class ImgMask extends Component{
                 if(this.onMoving) {
 
                     this.animatedY.setValue(value.y < 0 ? 0 : -value.y/height*.25*height);
-                    this.animatedOpacity.setValue(value.y < 0 ? .8 : (1 - value.y/height)*.8);
-                    this.animatedScale.setValue(value.y < 0 ? 1 : (1 - value.y/(2*height)));
+                    this.animatedOpacity.setValue(value.y < 0 ? .8 : (1 - value.y/(1.5*height))*.8);
+                    this.animatedScale.setValue(value.y < 0 ? 1 : (1 - value.y/(1.3*height)));
  
                     
                     // this.animatedY = this.animatedXY.y.interpolate({
@@ -143,6 +207,12 @@ class ImgMask extends Component{
             onPanResponderMove: (evt, gestureState) => {
                 if(!this.onMoving && gestureState.dy < 0)
                     return false;
+
+                if(this.state.horizonMove && this.props.active == 5 && this._value.x <= -.2*width) 
+                   return  
+
+                if(this.state.horizonMove && this.props.active == 0 && this._value.x >= .2*width) 
+                   return     
                 console.log(gestureState.vy);
                 if(!this.state.horizonMove && !this.onMoving && Math.abs(gestureState.vy) < 0.0000000000006){
                         this.setState({horizonMove: true});
@@ -153,9 +223,11 @@ class ImgMask extends Component{
             },  
             onPanResponderRelease: (evt, gestureState) => {
                 this.animatedXY.flattenOffset();
-
+                const { active } = this.props;
                 if(this.state.horizonMove) {
-                    if(Math.abs(this._value.x) < .4*width)
+                    
+
+                    if(Math.abs(this._value.x) < .4*width || (active == 5 && this._value.x < 0) || (active == 0 && this._value.x > 0))
                         Animated.timing(this.animatedValue, {
                             toValue: this.initAnimatedVal,
                             duration:300,
@@ -185,11 +257,15 @@ class ImgMask extends Component{
                         this.animatedXY.setValue({x:0, y:0});
                         this.onMoving = false;
                     } else {
+                        console.log('爱家居安静姐姐');
                         this.setState({missing:true})
-                        const {active} = this.props;
+                        const {active, boxHeightArr, imgsTopArr, presentIndex, scrollTop} = this.props;
                         // x: 0.25*width + active%3*.255*width + .12*width y: props.layouts.y + 
                         const x = 0.20*width + active%3*.255*width + .12*width;
-                        const y = this.props.layouts.y + (active/3 | 0)*.18*width + .1*width;
+
+                        const needAddHeight = presentIndex ? boxHeightArr.filter((item,index) => index <= presentIndex - 1).reduce((prev,next) => prev + next) : 0;
+                        const y = needAddHeight + imgsTopArr[presentIndex].y + (active/3 | 0)*.18*width + .1*width - scrollTop;
+                       // const y = this.props.layouts.y + (active/3 | 0)*.18*width + .1*width;
 
                         const imgx = .5*width;
                         const imgy = .38*height;
@@ -215,24 +291,6 @@ class ImgMask extends Component{
                 }
             }
         });
-
-        this._baseScale = new Animated.Value(1);
-  this._pinchScale = new Animated.Value(1);
-  this._scale = Animated.multiply(this._baseScale, this._pinchScale);
-  this._lastScale = 1;
- this._onPinchGestureEvent = Animated.event(
-    [{ nativeEvent: { scale: this._pinchScale } }],
-    { useNativeDriver: true }
-  );
-
-  this._onPinchHandlerStateChange = event => {
-    if (event.nativeEvent.oldState === State.ACTIVE) {
-      this._lastScale *= event.nativeEvent.scale;
-      this._baseScale.setValue(this._lastScale);
-      this._pinchScale.setValue(1);
-    }
-  };
-
     }
    
     render(){
@@ -262,10 +320,9 @@ class ImgMask extends Component{
                   <Animated.View style={{width:width*6, height:.4*height,position:'absolute',left:0, flexDirection:'row', top:.18*height, ...transformStyle}}>
                     {
                         imgs.map((item,index) => (   
-                            index == active ? 
-                          
+                            index == active ?         
                                 <Animated.View style={[styles.imgBox, {left:index*width}, transformImg]}>
-                                    <Animated.Image source={item} style={{width:.95*width, height:.4*height, transform:[{scale: this._scale}, {translateY: this.animatedY}]}} {...this.panResponder.panHandlers}/>
+                                    <Animated.Image source={item} style={{width:.95*width, height:.4*height, transform:[ {translateY: this.animatedY}]}} {...this.panResponder.panHandlers}/>
                                 </Animated.View>
                              : 
                             <Animated.View style={[styles.imgBox, {left:index*width}]}>
@@ -284,9 +341,6 @@ class ImgMask extends Component{
                       }
                   </View> : null
                   }
-                  
-
-
             </Fragment>    
         )
     }
@@ -305,40 +359,113 @@ class Friends extends Component {
           headerTintColor: navigationOptions.headerStyle.backgroundColor,
         };
       }
-
-    state = {
-        infos: [
-            {name:'being Ray', content:'打开快点快点快点快点回事\n解决实际上就是\n看看参考参考参考开车开车开车', time:'一小时前'},
-            // {name:'being Ray', content:'打开快点快点快点快点回事\n解决实际上就是\n看看参考参考参考开车开车开车', time:'一小时前'}
-        ],
-        visible: false,
-        active: null,
-        layouts:{}
-    }  
+   constructor(props){
+        super(props);
+        this.state = {
+            infos: [
+                {name:'being Ray', content:'打开快点快点快点快点回事\n解决实际上就是', time:'一小时前', avatar: require('../imgs/qq2.jpg')},
+                {name:'sumail Lei', content:'我今天去理发店理发花了300p\n日 心疼....\n晚上又开始了敲代码', time:'10分钟前', avatar: require('../imgs/qq1.jpg')},
+                {name:'sumail Lei', content:'我今天去理发店理发花了300p\n日 心疼....😊\n晚上又开始了敲代码\n晚上又开始了敲代码', time:'10分钟前', avatar: require('../imgs/qq3.jpg')}
+                // {name:'being Ray', content:'打开快点快点快点快点回事\n解决实际上就是\n看看参考参考参考开车开车开车', time:'一小时前'}
+            ],
+            visible: false,
+            active: null,
+            presentIndex: null,
+            layouts:{},
+            layArrs: [],
+            boxLayouts:[],
+            imgLayouts:[],
+            scrollTop:0,
+            showComment:false,
+            comment:''
+        }  
+        //this.postRef = React.createRef();
+        for(let i = 0; i<3;i++){
+            this['postRef' + i] = React.createRef();
+        }    
+   }  
 
   componentDidMount(){
-    //   setTimeout(() => {
-    //      this.setState({visible: true})
-    //   }, 2000);
+      setTimeout(() => {
+            console.log(this.state.boxLayouts, '     //  console.log(this.state.imgLayouts);');
+      }, 100)
+        // setTimeout(() => {
+        //     console.log(this.state.imgLayouts);
+        //     //console.log(this.state.boxLayouts);
+        //     for(let i = 0; i<3;i++){
+        //         UIManager.measure(findNodeHandle(this['postRef'+i].current),(x,y,width,height,pageX,pageY)=>{
+        //                console.log(x,y, pageX,pageY, 'dldlldldld');
+        //                this.setState({boxLayouts: [...this.state.boxLayouts, {x:pageX, y:pageY}]})
+        //         })
+        // }    
+        // }, 2500);   
   }   
 
-   onLayout = ({nativeEvent: {layout:{x, y, width, height}}}) => {
-        this.setState({layouts: {x,y}})
-   }
+  voteMsg = (index) => {
+      const infos = this.state.infos.slice();
+      const changeInfo = {...infos[index], likes: !infos[index].likes ? 1 : infos[index].likes + 1};
+      infos[index] = changeInfo;
+      this.setState({infos});
+  }
+
+  addComment = (index) => {
+      if(!this.state.comment) {this.setState({showComment:false, presentIndex:null});return}
+      const infos = this.state.infos.slice();
+      const changeInfo = {...infos[index], comments: !infos[index].comments ? [this.state.comment] : [...infos[index].comments, this.state.comment]};
+      infos[index] = changeInfo;
+      this.setState({infos, comment:'', showComment:false});
+  }
+
+  onBoxLayout = ({nativeEvent: {layout:{x, y, width, height}}}) => {
+        console.log(width,height, '在家vivo噢从此');
+        if(this.state.presentIndex == null)
+           this.setState({boxLayouts: [...this.state.boxLayouts, height]});
+        else {
+           console.log('无地自容') 
+           const boxLayouts = this.state.boxLayouts.slice();
+           boxLayouts[this.state.presentIndex] = height;
+           this.setState({boxLayouts, presentIndex:null})
+        }   
+  }
+
+  onImgLayout = ({nativeEvent: {layout:{x, y, width, height}}}) => { 
+        this.setState({imgLayouts: [...this.state.imgLayouts, {x,y}]});
+  }
+
+//   onLayout = ({nativeEvent: {layout:{x, y, width, height}}}) => {
+//         this.setState({layouts: {x,y}});
+//   }
 
   _keyExtractor = (item, index) => index + 'qq';
   
   render() {
-    const {visible, active, layouts} = this.state;  
+    const {visible, active, layouts, boxLayouts, imgLayouts, scrollTop, presentIndex, showComment} = this.state;  
     return (
-      <View style={{alignItems: 'center', width, height}}>
+      <View style={{alignItems: 'center', width, height, paddingBottom:110}}>
           <FlatList
               data={this.state.infos}
+              initialNumToRender={9}
+              onScroll={(e)=>{
+                    console.log(e.nativeEvent.contentOffset.y);
+                    this.setState({scrollTop: e.nativeEvent.contentOffset.y})
+                }}
               extraData={this.state}
-              renderItem={({item}) => <Post item={item} onLayout={this.onLayout} setActive={(active) => this.setState({active})}/>}
+              renderItem={({item, index}) => <DecPost ref={this['postRef'+index]}  scrollTop={scrollTop} showComment={(presentIndex) => this.setState({showComment:true, presentIndex})}likes={() => this.voteMsg(index)} index={index} item={item} onImgLayout={this.onImgLayout} onBoxLayout={this.onBoxLayout} setActive={(active, presentIndex) => {this.setState({active, presentIndex});console.log(scrollTop)}}/>}
               keyExtractor={this._keyExtractor}
           />
-          {active != null ? <ImgMask active={this.state.active} layouts={layouts} setActive={(active) => this.setState({active})}/> : null}
+          {active != null ? <ImgMask active={this.state.active} presentIndex={presentIndex} scrollTop={scrollTop} boxHeightArr={boxLayouts} imgsTopArr={imgLayouts} setActive={(active) => this.setState({active})}/> : null}
+          {
+               showComment ?
+               <View style={{position:'absolute',bottom:105, backgroundColor:'#f0f0f0', width, height:50, flexDirection:'row', justifyContent:'space-around', alignItems:'center'}}>
+                <TextInput onChangeText={text => this.setState({comment: text})} autoFocus={true} placeholder={'评论'}  placeholderTextColor={'#c3c3c3'} style={{width:.8*width,paddingHorizontal: 10, height:35, borderColor:'grey', borderWidth:1, borderRadius:5, backgroundColor:'#ffffff'}}/>
+                <TouchableWithoutFeedback onPress={() => this.addComment(presentIndex) }>
+                    <View style={{width:.1*width, height:35, borderColor:'grey', borderWidth:1, borderRadius:5, justifyContent:'center', alignItems:'center'}}>
+                        <Text>发送</Text>
+                    </View>
+                </TouchableWithoutFeedback>   
+              </View> : null
+          }
+          
       </View>
     )
   }
