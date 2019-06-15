@@ -40,6 +40,7 @@ import Flat from './src/view/flat'
 import TestSelect from './src/view/testSelect'
 import Slider from './src/view/slider'
 import Friends from './src/view/friends'
+import AddPost from './src/view/addPost'
 
 Date.prototype.Format = function(fmt)   
 {    
@@ -341,6 +342,9 @@ const Movies = createStackNavigator({
   },
   Friends: {
     screen: Friends
+  },
+  AddPost: {
+    screen: AddPost
   }
   },
   {

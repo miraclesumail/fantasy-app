@@ -12,7 +12,8 @@ import SplashScreen from 'react-native-splash-screen';
 import { theme } from './src/tool/theme';
 import { UtilityThemeProvider } from 'react-native-design-utility';
 
-const store = configureStore()
+export const store = configureStore()
+
 console.disableYellowBox = true;
 
 export default class ReduxApp extends Component{

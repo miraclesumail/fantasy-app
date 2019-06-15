@@ -17,7 +17,8 @@ const initialState = {
         {name:'游戏王2', img: require('../imgs/qq1.jpg'), release_date:'2019-04-10', avg_person:120, avg_amount:1100, avg_bonus:828, avg_score:8.8}, 
         {name:'游戏王3', img: require('../imgs/qq3.jpg'), release_date:'2019-04-05', avg_person:130, avg_amount:900, avg_bonus:858, avg_score:8.6}, 
       ]
-  }
+  },
+  posts: []
 }
 
 export default function peopleReducer (state = initialState, action) {
@@ -47,6 +48,14 @@ export default function peopleReducer (state = initialState, action) {
              $set: action.refreshTime
          }
       })  
+
+    case 'addPost':
+       let posts = state.posts.slice();
+       posts = [action.post, ...posts];   
+       return {
+           ...state,
+           posts
+       }
     case 'toggleLike': 
       let idx;
       const tempList = state.gamesList.hotRecommend.filter((item, index) => {
