@@ -350,10 +350,12 @@ class ImgMask extends Component {
       },
       onPanResponderMove: (evt, gestureState) => {
         if (!this.onMoving && gestureState.dy < 0) return false;
+        const { infos, presentIndex } = this.props;
+        const length = infos[presentIndex].imgs ? infos[presentIndex].imgs.length : imgs.length;
 
         if (
           this.state.horizonMove &&
-          this.props.active == 5 &&
+          this.props.active == length - 1 &&
           this._value.x <= -0.2 * width
         )
           return;
@@ -477,7 +479,7 @@ class ImgMask extends Component {
   }
 
   render() {
-    const { active } = this.props;
+    const { active, infos, presentIndex } = this.props;
     const transformStyle = {
       transform: [{ translateX: this.animatedValue }]
     };
@@ -488,7 +490,8 @@ class ImgMask extends Component {
       : {
           transform: [...transformStyleImg, { scale: this.animatedScale }]
         };
-
+    const length = infos[presentIndex].imgs ? infos[presentIndex].imgs.length : imgs.length;
+    const imgs = infos[presentIndex].imgs ? infos[presentIndex].imgs : imgs;
     return (
       <Fragment>
         {!this.state.missing ? (
@@ -507,7 +510,7 @@ class ImgMask extends Component {
 
         <Animated.View
           style={{
-            width: width * 6,
+            width: width * length,
             height: 0.4 * height,
             position: "absolute",
             left: 0,
@@ -692,10 +695,6 @@ class Friends extends Component {
     this.setState({ imgLayouts: [...this.state.imgLayouts, { x, y }] });
   };
 
-  //   onLayout = ({nativeEvent: {layout:{x, y, width, height}}}) => {
-  //         this.setState({layouts: {x,y}});
-  //   }
-
   _keyExtractor = (item, index) => index + "qq";
 
   render() {  
@@ -743,6 +742,7 @@ class Friends extends Component {
           <ImgMask
             active={this.state.active}
             presentIndex={presentIndex}
+            infos={infos}
             scrollTop={scrollTop}
             boxHeightArr={boxLayouts}
             imgsTopArr={imgLayouts}
