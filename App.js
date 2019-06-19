@@ -41,6 +41,7 @@ import TestSelect from './src/view/testSelect'
 import Slider from './src/view/slider'
 import Friends from './src/view/friends'
 import AddPost from './src/view/addPost'
+import GameTrend from './src/view/game_trend'
 
 Date.prototype.Format = function(fmt)   
 {    
@@ -338,7 +339,7 @@ const Movies = createStackNavigator({
     screen: PullRefesh
   },
   Flats: {
-    screen: Flat
+    screen: GameTrend
   },
   Friends: {
     screen: Friends
@@ -375,28 +376,28 @@ const TabNavigator = createBottomTabNavigator({
   }
 },
  {
-  //  defaultNavigationOptions: ({navigation}) => {
-  //      // 如何控制stacknavigator里面的某个路由不显示tab
-  //      const routes = navigation.state.routes;
-  //      return {tabBarIcon: ({focused, tintColor}) => {
-  //             let iconName;
-  //             const {routeName} = navigation.state;
-  //             if(routeName == 'Home') {
-  //                   iconName = `ios-information-circle${focused? '': '-outline'}`;
-  //             }else if(routeName == 'Musics') {
-  //                   iconName = `ios-checkbox${focused? '': '-outline'}`;
-  //             }else{
-  //                   iconName = `ios-add-circle${focused? '': '-outline'}`
-  //             }
-  //             if(routeName == 'Musics') {
-  //                return <View style={{width:.33*widths, height:80, backgroundColor:'purple'}}><Text>fddd </Text></View>
-  //             }
-  //             return <Ionicons name={iconName} size={25} color={tintColor} />
-  //       },
-  //             //tabBarVisible: routes[routes.length-1].routeName == 'Scroll' ? false : true
-  //     }
-        
-  //  },
+   defaultNavigationOptions: ({navigation}) => {
+       // 如何控制stacknavigator里面的某个路由不显示tab
+       const routes = navigation.state.routes;
+       return {
+        //  tabBarIcon: ({focused, tintColor}) => {
+        //       let iconName;
+        //       const {routeName} = navigation.state;
+        //       if(routeName == 'Home') {
+        //             iconName = `ios-information-circle${focused? '': '-outline'}`;
+        //       }else if(routeName == 'Musics') {
+        //             iconName = `ios-checkbox${focused? '': '-outline'}`;
+        //       }else{
+        //             iconName = `ios-add-circle${focused? '': '-outline'}`
+        //       }
+        //       if(routeName == 'Musics') {
+        //          return <View style={{width:.33*widths, height:80, backgroundColor:'purple'}}><Text>fddd </Text></View>
+        //       }
+        //       return <Ionicons name={iconName} size={25} color={tintColor} />
+        // },
+              tabBarVisible: routes[routes.length-1].routeName == 'Flats' ? false : true
+      }      
+   },
    tabBarComponent: props => <TabBar {...props} />,
   //  tabBarOptions: {
   //       activeTintColor: 'tomato',

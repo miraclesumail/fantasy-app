@@ -6,6 +6,18 @@ import {connect} from 'react-redux';
 
 const { width, height } = Dimensions.get("window");
 
+function mapStateToProps (state) {
+  return {
+     gamesList: state.people.gamesList,
+  }
+}
+
+function mapDispatchToProps (dispatch) {
+  return {
+    addPost: (post) => {return Promise.resolve('qq').then(() => dispatch({type: 'addPost', post}))}, 
+  }
+}
+
 class AddPost extends Component {
   state = {
     imgs: [],
@@ -95,15 +107,5 @@ class AddPost extends Component {
   }
 }
 
-function mapStateToProps (state) {
-  return {
-     gamesList: state.people.gamesList,
-  }
-}
 
-function mapDispatchToProps (dispatch) {
-  return {
-    addPost: (post) => {return Promise.resolve('qq').then(() => dispatch({type: 'addPost', post}))}, 
-  }
-}
 export default connect(mapStateToProps, mapDispatchToProps)(AddPost)
