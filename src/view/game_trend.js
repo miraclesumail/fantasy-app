@@ -1,11 +1,15 @@
 import React, { Component, Fragment } from 'react'
-import { Text, View, Dimensions, StyleSheet, Animated, ScrollView } from 'react-native'
+import { Text, View, Dimensions, StyleSheet, Animated, ScrollView, FlatList } from 'react-native'
 
 const { width, height } = Dimensions.get("window");
 
 const redBalls = Array.from({length:20}, (ele, index) => ('0' + (index+1)).slice(-2))
 
 const qishu = Array.from({length:40}, (ele, index) => ('0' + (index+1)).slice(-2))
+
+const trendDatas = Array.from({length:40}, (ele, index) => {
+      return Array.from({length:20}, (item, index) => Math.random()*26 | 0)
+})
 
 class GameTrend extends Component {
    static navigationOptions = ({ navigation, navigationOptions }) => {
@@ -46,7 +50,7 @@ class GameTrend extends Component {
     const headStyle = {
           width: .1*width,
           totalWidth: 1.4*width,
-          totalHeight: 1200
+          totalHeight: 1210
     }
 
     return (
@@ -57,9 +61,21 @@ class GameTrend extends Component {
   }
 }
 
+function TrendLine({item, index}) {
+    return <View style={{width: 1.4*width, height:30, flexDirection:'row'}}>
+              {
+                  item.map(ele => (
+                      <View style={[styles.itemCell, {backgroundColor: index % 2 ? '#c3c3c3':'#ffffff'}]}><Text>{ele}</Text></View>
+                  ))
+              }
+        </View>
+}
+
 class ScrollBoth extends Component {
       constructor(props){
           super(props);
+
+          this.state = {}
 
           this._animatedValue = new Animated.ValueXY;
           this.animatedLeft = new Animated.Value(0);
@@ -80,6 +96,8 @@ class ScrollBoth extends Component {
               this.animatedTop.setValue(-value.y);
           })
       }
+
+      _keyExtractor = (item, index) => index + "qq";
   
       render(){
           const { headStyle, totalWidth, headTitle, horizontal, vertical } = this.props;
@@ -98,12 +116,12 @@ class ScrollBoth extends Component {
           return (  
             <Fragment>  
                <View style={styles.topLine}>
-                    <View style={{width:headStyle.width, height:30, justifyContent:'center', alignItems:'center', backgroundColor:'#5DB4E8'}}>
+                    <View style={{width:headStyle.width, height:40, justifyContent:'center', alignItems:'center', backgroundColor:'#5DB4E8'}}>
                             <Text>{headTitle}</Text>
                     </View>
                 
-                    <View style={{width:width - headStyle.width, height:30, overflow:'hidden'}}>
-                            <Animated.View style={{width:headStyle.totalWidth, height:30, flexDirection: 'row', ...transformStyle}}>
+                    <View style={{width:width - headStyle.width, height:40, overflow:'hidden'}}>
+                            <Animated.View style={{width:headStyle.totalWidth, height:40, flexDirection: 'row', ...transformStyle}}>
                                    {horizontal}
                             </Animated.View>
                     </View>
@@ -119,7 +137,13 @@ class ScrollBoth extends Component {
                            <View style={{width:width - headStyle.width, height:headStyle.totalHeight}}>
                                <ScrollView horizontal={true} onScroll={this.onScroll} >
                                   <View style={{width:headStyle.totalWidth, height:headStyle.totalHeight, flexDirection:'row'}}>
-                                     
+                                        <FlatList 
+                                            initialNumToRender={20}
+                                            data={trendDatas}
+                                            renderItem={({ item, index }) => <TrendLine item={item} index={index}/>}
+                                            keyExtractor={this._keyExtractor}
+                                            extraData={this.state}
+                                        />
                                    </View> 
                                 </ScrollView> 
                            </View>                         
@@ -138,12 +162,21 @@ const styles = StyleSheet.create({
       },
       topCell: {
             width: .07*width,
-            height: 30,
+            height: 40,
+            backgroundColor:'chocolate',
             justifyContent: 'center',
             alignItems: 'center'
       },
-      verticalCell: {
+      itemCell: {
             width: .07*width,
+            height: 30,
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRightWidth: 1,
+            borderRightColor:'grey'
+      },
+      verticalCell: {
+            width: .1*width,
             height: 30,
             justifyContent: 'center',
             alignItems: 'center'

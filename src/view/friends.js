@@ -1,4 +1,5 @@
 import React, { Component, Fragment, useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import {
   Text,
   TextInput,
@@ -14,7 +15,7 @@ import {
   UIManager,
   findNodeHandle
 } from "react-native";
-import {store} from '../../index'
+import { store } from "../../index";
 const { width, height } = Dimensions.get("window");
 import { PinchGestureHandler, State } from "react-native-gesture-handler";
 
@@ -28,6 +29,74 @@ const styles = StyleSheet.create({
     top: 0
   }
 });
+
+const mapStateToProps = (state, props) => {
+  return {
+    people: state.people.people
+  };
+};
+
+function connect(mapStateToProps) {
+  return WrappedComponent => {
+    class Connect extends Component {
+      static navigationOptions = ({ navigation, navigationOptions }) => {
+        const { params } = navigation.state;
+        return {
+          title: params ? params.otherParam : "朋友圈",
+          /* These values are used instead of the shared configuration! */
+          headerStyle: {
+            backgroundColor: navigationOptions.headerTintColor,
+            height: 50
+          },
+          headerTintColor: navigationOptions.headerStyle.backgroundColor
+        };
+      };
+
+      static childContextTypes = {
+           qq: PropTypes.str
+      }
+ 
+      static contextTypes = {
+        store: PropTypes.object
+      };
+
+      constructor(props, context) {
+        super(props, context);
+        this.state = {
+          allProps: {}
+        };
+      }
+
+      getChildContext() {
+         return {qq: '就算技术计算机'}
+      }
+
+      componentWillMount() {
+        const { store } = this.context;
+        this.updateProps();
+        store.subscribe(() => this.updateProps());
+      }
+
+      updateProps() {
+        const { store } = this.context;
+        const state = store.getState();
+        const stateProps = mapStateToProps(state, this.props);
+        console.log(stateProps, '上课时老师看看算了算了算了算了算了算了算');
+        this.setState({
+          allProps: {
+            ...this.props,
+            ...stateProps
+          }
+        });
+      }
+
+      render() {
+        return <WrappedComponent {...this.state.allProps} />;
+      }
+    }
+    return Connect;
+  };
+}
 
 const imgs = [
   require("../imgs/qq1.jpg"),
@@ -351,7 +420,9 @@ class ImgMask extends Component {
       onPanResponderMove: (evt, gestureState) => {
         if (!this.onMoving && gestureState.dy < 0) return false;
         const { infos, presentIndex } = this.props;
-        const length = infos[presentIndex].imgs ? infos[presentIndex].imgs.length : imgs.length;
+        const length = infos[presentIndex].imgs
+          ? infos[presentIndex].imgs.length
+          : imgs.length;
 
         if (
           this.state.horizonMove &&
@@ -490,7 +561,9 @@ class ImgMask extends Component {
       : {
           transform: [...transformStyleImg, { scale: this.animatedScale }]
         };
-    const length = infos[presentIndex].imgs ? infos[presentIndex].imgs.length : imgs.length;
+    const length = infos[presentIndex].imgs
+      ? infos[presentIndex].imgs.length
+      : imgs.length;
     const imgs = infos[presentIndex].imgs ? infos[presentIndex].imgs : imgs;
     return (
       <Fragment>
@@ -577,24 +650,28 @@ class ImgMask extends Component {
 }
 
 class Friends extends Component {
-  static navigationOptions = ({ navigation, navigationOptions }) => {
-    const { params } = navigation.state;
-    return {
-      title: params ? params.otherParam : "朋友圈",
-      /* These values are used instead of the shared configuration! */
-      headerStyle: {
-        backgroundColor: navigationOptions.headerTintColor,
-        height: 50
-      },
-      headerTintColor: navigationOptions.headerStyle.backgroundColor
-    };
-  };
-  constructor(props) {
-      console.log('付宏伟覅欧文覅欧文别玩');
-    super(props);
+  // static navigationOptions = ({ navigation, navigationOptions }) => {
+  //   const { params } = navigation.state;
+  //   return {
+  //     title: params ? params.otherParam : "朋友圈",
+  //     /* These values are used instead of the shared configuration! */
+  //     headerStyle: {
+  //       backgroundColor: navigationOptions.headerTintColor,
+  //       height: 50
+  //     },
+  //     headerTintColor: navigationOptions.headerStyle.backgroundColor
+  //   };
+  // };
+  static contextTypes = {
+        qq: PropTypes.string
+  }
+
+  constructor(props, context) {
+    console.log("付宏伟覅欧文覅欧文别玩");
+    super(props, context);
     this.state = {
       infos: [
-        ...store.getState().people.posts,   
+        ...store.getState().people.posts,
         {
           name: "being Ray",
           content: "打开快点快点快点快点回事\n解决实际上就是",
@@ -651,8 +728,6 @@ class Friends extends Component {
     // }, 2500);
   }
 
-  
-
   voteMsg = index => {
     const infos = this.state.infos.slice();
     const changeInfo = {
@@ -697,7 +772,7 @@ class Friends extends Component {
 
   _keyExtractor = (item, index) => index + "qq";
 
-  render() {  
+  render() {
     let {
       visible,
       active,
@@ -706,8 +781,14 @@ class Friends extends Component {
       imgLayouts,
       scrollTop,
       presentIndex,
-      showComment, infos
+      showComment,
+      infos
     } = this.state;
+    setTimeout(() => {
+      console.log(this.props.people);
+      console.log(this.context.qq)
+    }, 3000);
+
     console.log(store.getState().people);
     //infos = [...store.getState().people.posts];
     return (
@@ -797,12 +878,17 @@ class Friends extends Component {
           </View>
         ) : null}
 
-        <TouchableWithoutFeedback onPress={() => this.props.navigation.navigate('AddPost')}>
-            <View><Text>发图</Text></View>
+        <TouchableWithoutFeedback
+          onPress={() => this.props.navigation.navigate("AddPost")}
+        >
+          <View>
+            <Text>发图</Text>
+          </View>
         </TouchableWithoutFeedback>
       </View>
     );
   }
 }
 
-export default Friends;
+//export default Friends;
+export default connect(mapStateToProps)(Friends);
